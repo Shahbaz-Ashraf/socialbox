@@ -1,0 +1,12 @@
+Analyzing socialbox...                                          
+
+   info - Use 'const' with the constructor to improve performance - lib\core\services\clipboard_service.dart:12:20 - prefer_const_constructors
+   info - The type parameter name 'Type' matches a visible type name - lib\core\usecases\usecase.dart:5:24 - avoid_types_as_parameter_names
+   info - The type parameter name 'Type' matches a visible type name - lib\core\usecases\usecase.dart:9:30 - avoid_types_as_parameter_names
+   info - Don't use 'BuildContext's across async gaps - lib\features\comment_templates\presentation\widgets\comment_search_delegate.dart:82:57 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\comment_templates\presentation\widgets\comment_search_delegate.dart:84:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\posts\presentation\pages\create_edit_post_page.dart:228:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\posts\presentation\pages\create_edit_post_page.dart:231:50 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\posts\presentation\pages\create_edit_post_page.dart:233:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\posts\presentation\pages\create_edit_post_page.dart:236:31 - use_build_context_synchronously
+
