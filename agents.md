@@ -214,6 +214,8 @@ flutter test
 | `agents.md` | This file |
 | `quickref.md` | One-page cheat sheet |
 | `post-writing-prompt.md` | Default AI prompt template reference |
+| `guide/social-media-auto-posting.md` | User guide: API auto-posting per platform, setup, limitations |
+| `guide/README.md` | Index of guides in `guide/` |
 
 ---
 
