@@ -198,8 +198,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: inputFill,
+        isDense: true,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         labelStyle: TextStyle(
           color: colorScheme.onSurface.withValues(alpha: 0.7),
           fontWeight: FontWeight.w500,

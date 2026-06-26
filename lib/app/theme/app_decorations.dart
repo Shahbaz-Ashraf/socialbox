@@ -103,6 +103,23 @@ class AppDecorations {
     );
   }
 
+  /// Settings / grouped list container.
+  static BoxDecoration settingsGroup(BuildContext context) {
+    return modernCard(context);
+  }
+
+  /// Subtle inset for nested list tiles inside a group card.
+  static BoxDecoration settingsTileInset(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return BoxDecoration(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      borderRadius: BorderRadius.circular(12),
+    );
+  }
+
   static BoxDecoration listItemSurface(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;

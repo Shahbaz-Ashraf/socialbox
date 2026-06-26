@@ -61,43 +61,43 @@ class DashboardEmptyState extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 18,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message,
-                  style: AppTextStyles.body.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                    fontSize: 13,
-                  ),
-                ),
-                if (actionLabel != null && onAction != null) ...[
-                  const SizedBox(height: 6),
-                  TextButton(
-                    onPressed: onAction,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(actionLabel!),
-                  ),
-                ],
-              ],
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.inbox_outlined,
+              size: 22,
+              color: theme.colorScheme.primary.withValues(alpha: 0.7),
             ),
           ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.body.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+              fontSize: 13,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: onAction,
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: Text(actionLabel!),
+            ),
+          ],
         ],
       ),
     );

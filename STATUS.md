@@ -1,7 +1,7 @@
 # Session Status — SocialBox
 
 **Last updated:** 2026-06-26  
-**App state:** `flutter analyze` — **0 issues**. Agent 6 quality pass complete (const lints fixed, 2 widget tests added, docs synced).  
+**App state:** `flutter analyze` — **0 issues** · `flutter test` — **26 passed**. UI/UX polish session: home skeleton, settings/posts/calendar visual system, `PostListBloc` stream fix, bottom-sheet overflow guards.
 **Full inventory:** See `features.md` (current roadmap ~100% · 2027 items deferred)
 
 ### Architecture policy (all sessions)
@@ -37,6 +37,10 @@
 | OAuth client ID settings fields | **Done** |
 | `/logs` from Settings + Dashboard | **Done** |
 | Widget tests (`dashboard_stats_row`, `log_tile`) | **Done** |
+| UI polish (home skeleton, settings/posts/calendar cards) | **Done** |
+| `PostListBloc` constructor stream subscription fix | **Done** |
+| Scrollable bottom sheets (`scrollable_bottom_sheet.dart`) | **Done** |
+| Tests: `ai_app_picker_sheet` 320px, `post_list_bloc` | **Done** |
 | `AppBlocObserver` | **Done** |
 
 ---

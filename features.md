@@ -71,8 +71,8 @@
 | Global comment search | `SearchDelegate` across all comments | **Implemented** | From categories app bar |
 | Swipe to delete | Dismissible with undo SnackBar | **Implemented** | Restore via `CreateComment` on undo |
 | Category drag-reorder | Reorder custom categories | **Implemented** | `SliverReorderableList` — custom categories only |
-| Lottie empty states | Animated empty placeholders | **Scheduled 2027** | Custom placeholders used today |
-| Shimmer loading skeletons | Skeleton grid while loading | **Scheduled 2027** | `LoadingState` exists elsewhere |
+| Lottie empty states | Animated empty placeholders | **Scheduled 2027** | Polished icon empty states on dashboard tabs |
+| Shimmer loading skeletons | Skeleton grid while loading | **Partial** | `DashboardSkeleton` on home; `LoadingListSkeleton` elsewhere |
 
 ---
 
@@ -167,7 +167,9 @@
 | Auto-refresh every 60s | Periodic stats reload | **Implemented** | Shows loading spinner each cycle |
 | AI writer quick card | Inline topic → copy prompt → open AI apps | **Implemented** | `DashboardAiWriterCard` |
 | Global search (posts + comments) | Unified `SearchDelegate` | **Implemented** | `GlobalSearchDelegate` on dashboard app bar |
-| Lottie / shimmer polish | Animated loading + empty states | **Scheduled 2027** | |
+| Shimmer skeleton loading | Home screen placeholder while stats load | **Implemented** | `DashboardSkeleton` |
+| Polished empty states | Tab feed empty states with actions | **Implemented** | `DashboardEmptyState` |
+| Lottie animations | Animated empty placeholders | **Scheduled 2027** | |
 
 ---
 
@@ -253,9 +255,9 @@
 
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
-| Unit + widget tests | BLoC tests, use case tests | **Partial** | 6 test files (cubit, page, widget tests) |
+| Unit + widget tests | BLoC tests, use case tests | **Partial** | 8 test files incl. `PostListBloc`, `ai_app_picker_sheet` |
 | Lottie animations | Empty states on all list pages | **Scheduled 2027** | Not in `pubspec.yaml` |
-| Shimmer skeletons | Loading placeholders on all pages | **Scheduled 2027** | Partial use on calendar only |
+| Shimmer skeletons | Loading placeholders on all pages | **Partial** | Home dashboard skeleton + calendar loading |
 | App icon + splash screen | Branded launch experience | **Scheduled 2027** | |
 | Strict `analysis_options.yaml` lints | Zero-warning CI target | **Implemented** | `flutter analyze` — 0 issues |
 | Windows desktop entry point | `main_windows.dart` + window manager | **Scheduled 2027** | Flutter Windows target exists |
@@ -275,19 +277,19 @@
 |------|:-----------:|:-------:|:-------:|:--------------:|
 | Navigation & Shell | 9 | 0 | 0 | 0 |
 | Foundation & Services | 11 | 1 | 0 | 2 |
-| Comment Templates | 10 | 0 | 0 | 2 |
+| Comment Templates | 10 | 0 | 0 | 1 |
 | Posts Manager | 17 | 1 | 0 | 1 |
 | Posting Log | 9 | 0 | 0 | 0 |
 | Reminders | 9 | 0 | 0 | 0 |
 | Social Auth | 5 | 2 | 0 | 2 |
-| Dashboard | 10 | 0 | 0 | 1 |
+| Dashboard | 12 | 0 | 0 | 1 |
 | Settings | 12 | 0 | 0 | 0 |
 | AI Post Writer | 11 | 0 | 0 | 1 |
 | Hashtags | 4 | 0 | 0 | 1 |
 | Calendar | 5 | 0 | 0 | 1 |
 | API Auto-Posting | 5 | 0 | 0 | 3 |
-| Polish & Platform | 1 | 1 | 0 | 11 |
-| **Totals** | **118** | **5** | **0** | **25** |
+| Polish & Platform | 1 | 2 | 0 | 10 |
+| **Totals** | **120** | **6** | **0** | **24** |
 
 ---
 

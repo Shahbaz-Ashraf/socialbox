@@ -15,6 +15,7 @@ import '../../../posts/domain/entities/social_post.dart';
 import '../../../posts/domain/usecases/post_usecases.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/dashboard_feed_tabs.dart';
+import '../widgets/dashboard_skeleton.dart';
 import '../widgets/dashboard_stats_row.dart';
 import '../widgets/global_search_delegate.dart';
 
@@ -46,7 +47,7 @@ class _DashboardView extends StatelessWidget {
       body: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
           if (state is DashboardInitial || state is DashboardLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const DashboardSkeleton();
           }
           if (state is DashboardError) {
             return Center(

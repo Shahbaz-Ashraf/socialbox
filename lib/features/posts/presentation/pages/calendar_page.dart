@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_decorations.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/empty_state.dart';
@@ -62,10 +64,11 @@ class _CalendarViewState extends State<_CalendarView> {
           final focused = state.focusedMonth ?? DateTime.now();
           final selected = state.selectedDate ?? DateTime.now();
           return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12),
+              Container(
+                decoration: AppDecorations.modernCard(context),
+                padding: const EdgeInsets.all(8),
                 child: TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2035, 12, 31),
@@ -110,9 +113,12 @@ class _CalendarViewState extends State<_CalendarView> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               if (state.loading)
-                const LoadingState(message: 'Loading items…')
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: LoadingState(message: 'Loading items…'),
+                )
               else
                 _DayDetails(date: selected, day: state.days[DateTime(
                     selected.year, selected.month, selected.day)]),
@@ -148,21 +154,16 @@ class _DayDetails extends StatelessWidget {
         ),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8, left: 4),
-            child: Text(
-              AppDateUtils.formatDate(date),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 4),
+          child: Text(
+            AppDateUtils.formatDate(date),
+            style: AppTextStyles.cardTitle(context),
           ),
+        ),
           if (posts.isNotEmpty) ...[
             const _SectionLabel('Posts'),
             ...posts.map((p) => _PostTile(post: p)),
@@ -172,8 +173,7 @@ class _DayDetails extends StatelessWidget {
             const _SectionLabel('Reminders'),
             ...reminders.map((r) => _ReminderTile(reminder: r)),
           ],
-        ],
-      ),
+      ],
     );
   }
 }
@@ -185,15 +185,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6, left: 4, top: 4),
-      child: Text(
-        text.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w800,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
+      child: Text(text, style: AppTextStyles.sectionHeader(context)),
     );
   }
 }
@@ -203,8 +195,9 @@ class _PostTile extends StatelessWidget {
   final SocialPost post;
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: AppDecorations.listItemSurface(context),
       child: ListTile(
         leading: const Icon(Icons.send_rounded),
         title: Text(post.title,
@@ -230,8 +223,9 @@ class _ReminderTile extends StatelessWidget {
   final Reminder reminder;
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: AppDecorations.listItemSurface(context),
       child: ListTile(
         leading: Icon(reminder.repeat.icon, color: reminder.repeat.color),
         title: Text(reminder.title,

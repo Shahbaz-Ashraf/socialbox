@@ -8,6 +8,7 @@ import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
+import '../../domain/entities/social_post.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../../domain/usecases/post_usecases.dart';
 import '../../domain/usecases/publish_via_api.dart';
@@ -62,6 +63,14 @@ class PostListPublishViaApi extends PostListEvent {
   List<Object?> get props => [postId, platform];
 }
 
+/// Internal — fired by the constructor stream subscription.
+class PostListStreamUpdated extends PostListEvent {
+  const PostListStreamUpdated(this.posts);
+  final List<SocialPost> posts;
+  @override
+  List<Object?> get props => [posts];
+}
+
 class PostListBloc extends Bloc<PostListEvent, PostListState> {
   PostListBloc({
     required this.repository,
@@ -74,10 +83,11 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
   }) : super(const PostListInitial()) {
     on<PostListLoad>(_onLoad);
     on<PostListReload>(_onReload);
+    on<PostListStreamUpdated>(_onStreamUpdated);
     on<PostListDelete>(_onDelete);
     on<PostListMarkPosted>(_onMarkPosted);
     on<PostListPublishViaApi>(_onPublishViaApi);
-    add(const PostListLoad());
+    _startStreamSubscription();
   }
 
   final PostRepository repository;
@@ -88,31 +98,37 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
   final NotificationService notificationService;
   final SettingsRepository settingsRepository;
 
-  StreamSubscription? _sub;
+  StreamSubscription<List<SocialPost>>? _sub;
 
   Future<void> copyContent(BuildContext context, String content) =>
       clipboard.copyText(context, content);
 
+  void _startStreamSubscription() {
+    _sub?.cancel();
+    _sub = repository.watchAllPosts().listen(
+      (posts) => add(PostListStreamUpdated(posts)),
+    );
+  }
+
   Future<void> _onLoad(PostListLoad event, Emitter<PostListState> emit) async {
-    await _subscribe(emit);
+    if (_sub == null) _startStreamSubscription();
   }
 
   Future<void> _onReload(
       PostListReload event, Emitter<PostListState> emit) async {
     emit(const PostListLoading());
-    await _subscribe(emit);
   }
 
-  Future<void> _subscribe(Emitter<PostListState> emit) async {
-    await _sub?.cancel();
-    _sub = repository.watchAllPosts().listen((posts) {
-      final s = state;
-      if (s is PostListLoaded) {
-        emit(s.copyWith(posts: posts));
-      } else {
-        emit(PostListLoaded(posts: posts));
-      }
-    });
+  Future<void> _onStreamUpdated(
+    PostListStreamUpdated event,
+    Emitter<PostListState> emit,
+  ) async {
+    final s = state;
+    if (s is PostListLoaded) {
+      emit(s.copyWith(posts: event.posts));
+    } else {
+      emit(PostListLoaded(posts: event.posts));
+    }
   }
 
   Future<void> _onDelete(

@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_text_styles.dart';
+import '../../../../app/widgets/form_section_card.dart';
 import '../../../../core/constants/predefined_categories.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../ai_prompts/domain/entities/ai_post_prefill.dart';
 import '../../../ai_prompts/domain/entities/prompt_config.dart';
@@ -196,163 +199,210 @@ class _FormViewState extends State<_FormView> {
                     ],
             ),
             body: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                TextField(
-                  controller: _titleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: cubit.setTitle,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _contentCtrl,
-                  maxLines: 6,
-                  minLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Content',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: cubit.setContent,
-                ),
-                const SizedBox(height: 16),
-                const _SectionLabel('Platforms'),
-                PlatformChipSelector(
-                  selected: state.platforms,
-                  onToggle: cubit.togglePlatform,
-                ),
-                const SizedBox(height: 16),
-                const _SectionLabel('Status'),
-                Wrap(
-                  spacing: 8,
-                  children: PostStatus.values
-                      .where((s) => s != PostStatus.partial)
-                      .map((s) => ChoiceChip(
-                            label: Text(s.label),
-                            selected: state.status == s,
-                            onSelected: (_) => cubit.setStatus(s),
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(height: 16),
-                if (state.status == PostStatus.scheduled ||
-                    state.scheduledAt != null) ...[
-                  const _SectionLabel('Schedule'),
-                  ScheduleDatePicker(
-                    value: state.scheduledAt,
-                    onChanged: cubit.setScheduledAt,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+                FormSectionCard(
+                  title: 'Content',
+                  child: Column(
                     children: [
-                      Switch(
-                        value: state.isRecurring,
-                        onChanged: cubit.setRecurring,
-                      ),
-                      const Text('Recurring'),
-                      const Spacer(),
-                      if (state.isRecurring)
-                        TextButton.icon(
-                          icon: const Icon(Icons.tune_rounded, size: 18),
-                          label: Text(state.recurringType.label),
-                          onPressed: () =>
-                              _showRecurring(context, state, cubit),
+                      TextField(
+                        controller: _titleCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Title',
+                          hintText: 'Give your post a short title',
                         ),
+                        onChanged: cubit.setTitle,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _contentCtrl,
+                        maxLines: 6,
+                        minLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Content',
+                          hintText: 'Write your post body…',
+                          alignLabelWithHint: true,
+                        ),
+                        onChanged: cubit.setContent,
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                FormSectionCard(
+                  title: 'Platforms & status',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PlatformChipSelector(
+                        selected: state.platforms,
+                        onToggle: cubit.togglePlatform,
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: PostStatus.values
+                            .where((s) => s != PostStatus.partial)
+                            .map((s) => ChoiceChip(
+                                  label: Text(s.label),
+                                  selected: state.status == s,
+                                  onSelected: (_) => cubit.setStatus(s),
+                                ))
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                if (state.status == PostStatus.scheduled ||
+                    state.scheduledAt != null) ...[
+                  const SizedBox(height: 12),
+                  FormSectionCard(
+                    title: 'Schedule',
+                    child: Column(
+                      children: [
+                        ScheduleDatePicker(
+                          value: state.scheduledAt,
+                          onChanged: cubit.setScheduledAt,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Switch(
+                              value: state.isRecurring,
+                              onChanged: cubit.setRecurring,
+                            ),
+                            const Text('Recurring'),
+                            const Spacer(),
+                            if (state.isRecurring)
+                              TextButton.icon(
+                                icon: const Icon(Icons.tune_rounded, size: 18),
+                                label: Text(state.recurringType.label),
+                                onPressed: () =>
+                                    _showRecurring(context, state, cubit),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-                const SizedBox(height: 16),
-                const _SectionLabel('Attachments'),
-                if (state.attachments.isNotEmpty)
-                  ...state.attachments.map(
-                    (path) => Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(path),
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.broken_image_rounded,
+                const SizedBox(height: 12),
+                FormSectionCard(
+                  title: 'Attachments',
+                  child: Column(
+                    children: [
+                      if (state.attachments.isNotEmpty)
+                        ...state.attachments.map(
+                          (path) => Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.4),
+                            ),
+                            child: ListTile(
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  File(path),
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.broken_image_rounded,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                p.basename(path),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: IconButton(
+                                tooltip: 'Remove attachment',
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () => cubit.removeAttachment(path),
+                              ),
                             ),
                           ),
                         ),
-                        title: Text(
-                          p.basename(path),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: IconButton(
-                          tooltip: 'Remove attachment',
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () => cubit.removeAttachment(path),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.add_photo_alternate_rounded),
+                          label: const Text('Add image'),
+                          onPressed: () => _pickImage(cubit),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FormSectionCard(
+                  title: 'Tags',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      BlocProvider(
+                        create: (_) => getIt<HashtagSuggestionsCubit>(),
+                        child: HashtagSuggestionsStrip(
+                          existing: state.tags,
+                          onAdd: cubit.addTag,
+                          onCopy: (tag) => cubit.copyHashtag(context, tag),
+                        ),
+                      ),
+                      if (state.tags.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8, top: 4),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: state.tags
+                                .map((t) => InputChip(
+                                      label: Text('#$t'),
+                                      onDeleted: () => cubit.removeTag(t),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                      TextField(
+                        controller: _tagCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Add tag and press Enter',
+                          isDense: true,
+                        ),
+                        onSubmitted: (v) {
+                          final t = v.trim();
+                          if (t.isNotEmpty) {
+                            cubit.addTag(t);
+                            _tagCtrl.clear();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FormSectionCard(
+                  title: 'Notes',
+                  child: TextField(
+                    controller: _notesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Private notes about this post…',
+                      alignLabelWithHint: true,
                     ),
-                  ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.add_photo_alternate_rounded),
-                  label: const Text('Add Image'),
-                  onPressed: () => _pickImage(cubit),
-                ),
-                const SizedBox(height: 16),
-                const _SectionLabel('Tags'),
-                BlocProvider(
-                  create: (_) => getIt<HashtagSuggestionsCubit>(),
-                  child: HashtagSuggestionsStrip(
-                    existing: state.tags,
-                    onAdd: cubit.addTag,
-                    onCopy: (tag) => cubit.copyHashtag(context, tag),
+                    onChanged: cubit.setNotes,
                   ),
                 ),
-                if (state.tags.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Wrap(
-                      spacing: 6,
-                      children: state.tags
-                          .map((t) => InputChip(
-                                label: Text('#$t'),
-                                onDeleted: () => cubit.removeTag(t),
-                              ))
-                          .toList(),
-                    ),
-                  ),
-                TextField(
-                  controller: _tagCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Add tag + Enter',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (v) {
-                    final t = v.trim();
-                    if (t.isNotEmpty) {
-                      cubit.addTag(t);
-                      _tagCtrl.clear();
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                const _SectionLabel('Notes (optional)'),
-                TextField(
-                  controller: _notesCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Private notes about this post...',
-                  ),
-                  onChanged: cubit.setNotes,
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 FilledButton.icon(
                   icon: const Icon(Icons.save_rounded),
                   label:
-                      Text(state.id == null ? 'Create Post' : 'Save Changes'),
+                      Text(state.id == null ? 'Create post' : 'Save changes'),
                   onPressed: !state.isValid
                       ? null
                       : () async {
@@ -449,46 +499,41 @@ class _FormViewState extends State<_FormView> {
   }
 
   void _showTemplates(BuildContext context) {
-    showModalBottomSheet(
+    showScrollableBottomSheet<void>(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          children: kPostTemplates.entries.expand((e) {
-            return [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text(
-                  e.key.toUpperCase(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+      title: 'Insert template',
+      subtitle: 'Tap a snippet to append to your content',
+      initialChildSize: 0.6,
+      builder: (_, scrollController) => ListView(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+        children: kPostTemplates.entries.expand((e) {
+          return [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              child: Text(
+                e.key,
+                style: AppTextStyles.sectionHeader(context),
               ),
-              ...e.value.map(
-                (t) => ListTile(
-                  leading: const Icon(Icons.auto_awesome_rounded),
-                  title: Text(t),
-                  onTap: () {
-                    final cur = _contentCtrl.text;
-                    _contentCtrl.text = cur.isEmpty ? t : '$cur\n\n$t';
-                    if (context.mounted) {
-                      context
-                          .read<PostFormCubit>()
-                          .setContent(_contentCtrl.text);
-                    }
-                    Navigator.pop(context);
-                  },
-                ),
+            ),
+            ...e.value.map(
+              (t) => ListTile(
+                leading: const Icon(Icons.auto_awesome_rounded),
+                title: Text(t, maxLines: 2, overflow: TextOverflow.ellipsis),
+                onTap: () {
+                  final cur = _contentCtrl.text;
+                  _contentCtrl.text = cur.isEmpty ? t : '$cur\n\n$t';
+                  if (context.mounted) {
+                    context
+                        .read<PostFormCubit>()
+                        .setContent(_contentCtrl.text);
+                  }
+                  Navigator.pop(context);
+                },
               ),
-            ];
-          }).toList(),
-        ),
+            ),
+          ];
+        }).toList(),
       ),
     );
   }
@@ -498,38 +543,25 @@ class _FormViewState extends State<_FormView> {
     PostFormData state,
     PostFormCubit cubit,
   ) {
-    showModalBottomSheet(
+    showScrollableBottomSheet<void>(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => RecurringOptionsSheet(
-        type: state.recurringType,
-        days: state.recurringDays,
-        onChanged: (type, days) {
-          cubit.setRecurringType(type);
-          for (final d in days) {
-            if (!cubit.state.recurringDays.contains(d)) {
-              cubit.toggleRecurringDay(d);
+      title: 'Recurring options',
+      initialChildSize: 0.55,
+      builder: (_, scrollController) => SingleChildScrollView(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: RecurringOptionsSheet(
+          type: state.recurringType,
+          days: state.recurringDays,
+          onChanged: (type, days) {
+            cubit.setRecurringType(type);
+            for (final d in days) {
+              if (!cubit.state.recurringDays.contains(d)) {
+                cubit.toggleRecurringDay(d);
+              }
             }
-          }
-        },
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          },
+        ),
       ),
     );
   }

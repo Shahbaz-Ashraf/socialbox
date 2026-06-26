@@ -6,7 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../app/widgets/form_section_card.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../domain/entities/app_settings.dart';
 import '../cubit/settings_cubit.dart';
 import '../widgets/theme_mode_picker.dart';
@@ -30,116 +32,153 @@ class _SettingsView extends StatelessWidget {
         builder: (context, settings) {
           final cubit = context.read<SettingsCubit>();
           return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              const _SectionTitle('Appearance'),
-              ThemeModePicker(
-                current: settings.themeMode,
-                onChanged: (v) => cubit.update(settings.copyWith(themeMode: v)),
-              ),
-              const SizedBox(height: 4),
-              const Divider(),
-              const _SectionTitle('Defaults'),
-              const _DefaultPlatformsTile(),
-              const Divider(),
-              const _SectionTitle('Notifications'),
-              SwitchListTile(
-                title: const Text('Enable notifications'),
-                subtitle: const Text('Reminder and posting result alerts'),
-                value: settings.enableNotifications,
-                onChanged: (v) =>
-                    cubit.update(settings.copyWith(enableNotifications: v)),
-              ),
-              ListTile(
-                title: const Text('Reminder lead time'),
-                subtitle: Slider(
-                  value: settings.reminderLeadMinutes.toDouble(),
-                  min: 0,
-                  max: 60,
-                  divisions: 12,
-                  label: '${settings.reminderLeadMinutes} min',
-                  onChanged: (v) =>
-                      cubit.update(settings.copyWith(reminderLeadMinutes: v.toInt())),
-                ),
-                trailing: Text('${settings.reminderLeadMinutes}m'),
-              ),
-              const Divider(),
-              const _SectionTitle('OAuth Credentials'),
-              const _OAuthCredentialsSection(),
-              const Divider(),
-              const _SectionTitle('Social Posting'),
-              SwitchListTile(
-                title: const Text('Enable API posting'),
-                subtitle: const Text('Auto-publish via OAuth when scheduled'),
-                value: settings.enableApiPosting,
-                onChanged: (v) =>
-                    cubit.update(settings.copyWith(enableApiPosting: v)),
-              ),
-              SwitchListTile(
-                title: const Text('Auto-refresh tokens'),
-                subtitle: const Text('Refresh OAuth tokens automatically'),
-                value: settings.autoRefreshTokens,
-                onChanged: (v) =>
-                    cubit.update(settings.copyWith(autoRefreshTokens: v)),
-              ),
-              ListTile(
-                leading: const Icon(Icons.link_rounded),
-                title: const Text('Connected accounts'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.pushNamed(RouteNames.socialAccounts),
-              ),
-              ListTile(
-                leading: const Icon(Icons.notifications_active_rounded),
-                title: const Text('Reminders'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.pushNamed(RouteNames.reminders),
-              ),
-              const Divider(),
-              const _SectionTitle('AI Writing'),
-              ListTile(
-                leading: const Icon(Icons.auto_awesome_rounded),
-                title: const Text('AI Post Writer'),
-                subtitle: const Text(
-                    'Configure prompts, copy to clipboard for ChatGPT, Gemini & more'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.pushNamed(RouteNames.aiPromptStudio),
-              ),
-              ListTile(
-                leading: const Icon(Icons.history_rounded),
-                title: const Text('Posting log'),
-                subtitle: const Text('Global history of all platform posts'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.pushNamed(RouteNames.logs),
-              ),
-              const Divider(),
-              const _SectionTitle('Data'),
-              ListTile(
-                leading: const Icon(Icons.download_rounded),
-                title: const Text('Export comments as CSV'),
-                subtitle: const Text('Share or copy to clipboard'),
-                onTap: () => _exportCsv(context),
-              ),
-              ListTile(
-                leading: const Icon(Icons.upload_rounded),
-                title: const Text('Open quick share dialog'),
-                onTap: () => Share.share(
-                  'Check out SocialBox — my social media organizer!',
-                  subject: 'SocialBox',
+              FormSectionCard(
+                title: 'Appearance',
+                child: ThemeModePicker(
+                  current: settings.themeMode,
+                  onChanged: (v) => cubit.update(settings.copyWith(themeMode: v)),
                 ),
               ),
-              const Divider(),
-              const _SectionTitle('About'),
-              const ListTile(
-                leading: Icon(Icons.info_outline_rounded),
-                title: Text('SocialBox'),
-                subtitle: Text('Version 1.0.0  •  Linkedif'),
+              const SizedBox(height: 12),
+              const FormSectionCard(
+                title: 'Defaults',
+                child: _DefaultPlatformsTile(),
               ),
-              ListTile(
-                leading: const Icon(Icons.code_rounded),
-                title: const Text('View developer site'),
-                trailing: const Icon(Icons.open_in_new_rounded),
-                onTap: () => launchUrl(Uri.parse('https://linkedif.com')),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'Notifications',
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Enable notifications'),
+                      subtitle: const Text('Reminder and posting result alerts'),
+                      value: settings.enableNotifications,
+                      onChanged: (v) =>
+                          cubit.update(settings.copyWith(enableNotifications: v)),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Reminder lead time'),
+                      subtitle: Slider(
+                        value: settings.reminderLeadMinutes.toDouble(),
+                        min: 0,
+                        max: 60,
+                        divisions: 12,
+                        label: '${settings.reminderLeadMinutes} min',
+                        onChanged: (v) => cubit.update(
+                          settings.copyWith(reminderLeadMinutes: v.toInt()),
+                        ),
+                      ),
+                      trailing: Text('${settings.reminderLeadMinutes}m'),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              const FormSectionCard(
+                title: 'OAuth credentials',
+                child: _OAuthCredentialsSection(),
+              ),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'Social posting',
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Enable API posting'),
+                      subtitle: const Text('Auto-publish via OAuth when scheduled'),
+                      value: settings.enableApiPosting,
+                      onChanged: (v) =>
+                          cubit.update(settings.copyWith(enableApiPosting: v)),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Auto-refresh tokens'),
+                      subtitle: const Text('Refresh OAuth tokens automatically'),
+                      value: settings.autoRefreshTokens,
+                      onChanged: (v) =>
+                          cubit.update(settings.copyWith(autoRefreshTokens: v)),
+                    ),
+                    _SettingsNavTile(
+                      icon: Icons.link_rounded,
+                      title: 'Connected accounts',
+                      onTap: () => context.pushNamed(RouteNames.socialAccounts),
+                    ),
+                    _SettingsNavTile(
+                      icon: Icons.notifications_active_rounded,
+                      title: 'Reminders',
+                      onTap: () => context.pushNamed(RouteNames.reminders),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'AI writing',
+                child: Column(
+                  children: [
+                    _SettingsNavTile(
+                      icon: Icons.auto_awesome_rounded,
+                      title: 'AI Post Writer',
+                      subtitle:
+                          'Configure prompts, copy to clipboard for ChatGPT, Gemini & more',
+                      onTap: () => context.pushNamed(RouteNames.aiPromptStudio),
+                    ),
+                    _SettingsNavTile(
+                      icon: Icons.history_rounded,
+                      title: 'Posting log',
+                      subtitle: 'Global history of all platform posts',
+                      onTap: () => context.pushNamed(RouteNames.logs),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'Data',
+                child: Column(
+                  children: [
+                    _SettingsNavTile(
+                      icon: Icons.download_rounded,
+                      title: 'Export comments as CSV',
+                      subtitle: 'Share or copy to clipboard',
+                      onTap: () => _exportCsv(context),
+                    ),
+                    _SettingsNavTile(
+                      icon: Icons.upload_rounded,
+                      title: 'Open quick share dialog',
+                      onTap: () => Share.share(
+                        'Check out SocialBox — my social media organizer!',
+                        subject: 'SocialBox',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'About',
+                child: Column(
+                  children: [
+                    const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.info_outline_rounded),
+                      title: Text('SocialBox'),
+                      subtitle: Text('Version 1.0.0  ·  Linkedif'),
+                    ),
+                    _SettingsNavTile(
+                      icon: Icons.code_rounded,
+                      title: 'View developer site',
+                      trailing: const Icon(Icons.open_in_new_rounded, size: 20),
+                      onTap: () => launchUrl(Uri.parse('https://linkedif.com')),
+                    ),
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -149,24 +188,26 @@ class _SettingsView extends StatelessWidget {
 
   Future<void> _exportCsv(BuildContext context) async {
     final cubit = context.read<SettingsCubit>();
-    final action = await showModalBottomSheet<String>(
+    final action = await showScrollableBottomSheet<String>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.share_rounded),
-              title: const Text('Share CSV'),
-              onTap: () => Navigator.pop(ctx, 'share'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.content_copy_rounded),
-              title: const Text('Copy to clipboard'),
-              onTap: () => Navigator.pop(ctx, 'copy'),
-            ),
-          ],
-        ),
+      title: 'Export comments',
+      subtitle: 'Choose how to share your comment library',
+      initialChildSize: 0.32,
+      minChildSize: 0.25,
+      builder: (_, __) => ListView(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.share_rounded),
+            title: const Text('Share CSV'),
+            onTap: () => Navigator.pop(context, 'share'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.content_copy_rounded),
+            title: const Text('Copy to clipboard'),
+            onTap: () => Navigator.pop(context, 'copy'),
+          ),
+        ],
       ),
     );
     if (!context.mounted || action == null) return;
@@ -183,6 +224,34 @@ class _SettingsView extends StatelessWidget {
   }
 }
 
+class _SettingsNavTile extends StatelessWidget {
+  const _SettingsNavTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: subtitle != null ? Text(subtitle!) : null,
+      trailing: trailing ?? const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    );
+  }
+}
+
 class _DefaultPlatformsTile extends StatelessWidget {
   const _DefaultPlatformsTile();
   @override
@@ -190,28 +259,30 @@ class _DefaultPlatformsTile extends StatelessWidget {
     return BlocBuilder<SettingsCubit, AppSettings>(
       builder: (context, settings) {
         return ListTile(
+          contentPadding: EdgeInsets.zero,
           title: const Text('Default platforms'),
-          subtitle: Text(settings.defaultPlatforms.isEmpty
-              ? 'None selected — every post will start empty'
-              : settings.defaultPlatforms.map((p) => p.displayName).join(', ')),
+          subtitle: Text(
+            settings.defaultPlatforms.isEmpty
+                ? 'None selected — every post will start empty'
+                : settings.defaultPlatforms.map((p) => p.displayName).join(', '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () async {
             final selected = List<SocialPlatform>.from(settings.defaultPlatforms);
-            await showModalBottomSheet(
+            await showScrollableBottomSheet<void>(
               context: context,
-              builder: (sheetCtx) {
-                return StatefulBuilder(builder: (sheetCtx, setSheet) {
-                  return SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+              title: 'Default platforms',
+              subtitle: 'Pre-selected when creating a new post',
+              initialChildSize: 0.5,
+              builder: (sheetCtx, scrollController) {
+                return StatefulBuilder(
+                  builder: (sheetCtx, setSheet) {
+                    return ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('Default platforms for new posts',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700)),
-                        ),
                         ...SocialPlatform.values.map((p) {
                           final isSel = selected.contains(p);
                           return CheckboxListTile(
@@ -227,15 +298,16 @@ class _DefaultPlatformsTile extends StatelessWidget {
                           );
                         }),
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
                           child: SizedBox(
                             width: double.infinity,
                             child: FilledButton(
                               onPressed: () {
-                                context
-                                    .read<SettingsCubit>()
-                                    .update(settings.copyWith(
-                                        defaultPlatforms: selected));
+                                context.read<SettingsCubit>().update(
+                                      settings.copyWith(
+                                        defaultPlatforms: selected,
+                                      ),
+                                    );
                                 Navigator.pop(sheetCtx);
                               },
                               child: const Text('Save'),
@@ -243,9 +315,9 @@ class _DefaultPlatformsTile extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  );
-                });
+                    );
+                  },
+                );
               },
             );
           },
@@ -303,127 +375,123 @@ class _OAuthCredentialsSectionState extends State<_OAuthCredentialsSection> {
 
         String? emptyToNull(String v) => v.trim().isEmpty ? null : v.trim();
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Store app credentials from each platform developer portal. '
-                'Used when connecting accounts.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Facebook',
-                style: AppTextStyles.sectionHeader(context).copyWith(fontSize: 11),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _fbAppId,
-                decoration: const InputDecoration(
-                  labelText: 'Facebook App ID',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Store app credentials from each platform developer portal. '
+              'Used when connecting accounts.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            _CredentialGroup(
+              label: 'Facebook',
+              children: [
+                TextField(
+                  controller: _fbAppId,
+                  decoration: const InputDecoration(
+                    labelText: 'Facebook App ID',
+                    isDense: true,
+                  ),
+                  onSubmitted: (v) => cubit.update(
+                    settings.copyWith(fbAppId: emptyToNull(v)),
+                  ),
                 ),
-                onSubmitted: (v) => cubit.update(
-                  settings.copyWith(fbAppId: emptyToNull(v)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _fbAppSecret,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Facebook App Secret',
+                    isDense: true,
+                  ),
+                  onSubmitted: (v) => cubit.update(
+                    settings.copyWith(fbAppSecret: emptyToNull(v)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _fbAppSecret,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Facebook App Secret',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+              ],
+            ),
+            const SizedBox(height: 16),
+            _CredentialGroup(
+              label: 'LinkedIn',
+              children: [
+                TextField(
+                  controller: _liClientId,
+                  decoration: const InputDecoration(
+                    labelText: 'LinkedIn Client ID',
+                    isDense: true,
+                  ),
+                  onSubmitted: (v) => cubit.update(
+                    settings.copyWith(liClientId: emptyToNull(v)),
+                  ),
                 ),
-                onSubmitted: (v) => cubit.update(
-                  settings.copyWith(fbAppSecret: emptyToNull(v)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _liClientSecret,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'LinkedIn Client Secret',
+                    isDense: true,
+                  ),
+                  onSubmitted: (v) => cubit.update(
+                    settings.copyWith(liClientSecret: emptyToNull(v)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'LinkedIn',
-                style: AppTextStyles.sectionHeader(context).copyWith(fontSize: 11),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _liClientId,
-                decoration: const InputDecoration(
-                  labelText: 'LinkedIn Client ID',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+              ],
+            ),
+            const SizedBox(height: 16),
+            _CredentialGroup(
+              label: 'Twitter / X',
+              children: [
+                TextField(
+                  controller: _twClientId,
+                  decoration: const InputDecoration(
+                    labelText: 'Twitter Client ID',
+                    isDense: true,
+                  ),
+                  onSubmitted: (v) => cubit.update(
+                    settings.copyWith(twClientId: emptyToNull(v)),
+                  ),
                 ),
-                onSubmitted: (v) => cubit.update(
-                  settings.copyWith(liClientId: emptyToNull(v)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _twClientSecret,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Twitter Client Secret (optional)',
+                    isDense: true,
+                  ),
+                  onSubmitted: (v) => cubit.update(
+                    settings.copyWith(twClientSecret: emptyToNull(v)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _liClientSecret,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'LinkedIn Client Secret',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onSubmitted: (v) => cubit.update(
-                  settings.copyWith(liClientSecret: emptyToNull(v)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Twitter / X',
-                style: AppTextStyles.sectionHeader(context).copyWith(fontSize: 11),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _twClientId,
-                decoration: const InputDecoration(
-                  labelText: 'Twitter Client ID',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onSubmitted: (v) => cubit.update(
-                  settings.copyWith(twClientId: emptyToNull(v)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _twClientSecret,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Twitter Client Secret (optional)',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onSubmitted: (v) => cubit.update(
-                  settings.copyWith(twClientSecret: emptyToNull(v)),
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         );
       },
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-  final String text;
+class _CredentialGroup extends StatelessWidget {
+  const _CredentialGroup({
+    required this.label,
+    required this.children,
+  });
+
+  final String label;
+  final List<Widget> children;
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        text.toUpperCase(),
-        style: AppTextStyles.sectionHeader(context),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.sectionHeader(context)),
+        const SizedBox(height: 8),
+        ...children,
+      ],
     );
   }
 }
-
-
