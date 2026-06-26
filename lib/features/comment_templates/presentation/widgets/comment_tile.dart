@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/clipboard_service.dart';
 import '../../domain/entities/comment_category.dart';
 
 class CommentTile extends StatelessWidget {
@@ -12,7 +11,6 @@ class CommentTile extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     this.onSwipeDelete,
-    this.clipboard,
   });
 
   final Comment comment;
@@ -21,7 +19,6 @@ class CommentTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final ValueChanged<Comment>? onSwipeDelete;
-  final ClipboardService? clipboard;
 
   @override
   Widget build(BuildContext context) {

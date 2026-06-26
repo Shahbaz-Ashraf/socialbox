@@ -7,8 +7,6 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/comment_category.dart';
-import '../../domain/repositories/comment_repository.dart';
-import '../../domain/usecases/comment_usecases.dart';
 import '../cubit/category_cubit.dart';
 import '../widgets/add_category_bottom_sheet.dart';
 import '../widgets/category_card.dart';
@@ -20,13 +18,7 @@ class CategoriesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => CategoryCubit(
-        repository: getIt<CommentRepository>(),
-        getAllCategories: getIt(),
-        createCategory: getIt(),
-        updateCategory: getIt(),
-        deleteCategory: getIt(),
-      ),
+      create: (_) => getIt<CategoryCubit>(),
       child: const _CategoriesView(),
     );
   }
@@ -44,13 +36,16 @@ class _CategoriesView extends StatelessWidget {
           IconButton(
             tooltip: 'Search',
             icon: const Icon(Icons.search_rounded),
-            onPressed: () => showSearch(
-              context: context,
-              delegate: CommentSearchDelegate(
-                searchUseCase: getIt<SearchComments>(),
-                onCopied: (id, _) => getIt<IncrementUsageCount>()(id),
-              ),
-            ),
+            onPressed: () {
+              final cubit = context.read<CategoryCubit>();
+              showSearch(
+                context: context,
+                delegate: CommentSearchDelegate(
+                  search: cubit.search,
+                  onCopy: cubit.copySearchResult,
+                ),
+              );
+            },
           ),
         ],
       ),

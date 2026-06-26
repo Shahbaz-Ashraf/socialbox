@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/comment_category.dart';
+import '../../domain/usecases/comment_usecases.dart';
 import '../../domain/repositories/comment_repository.dart';
 import '../../domain/usecases/category_usecases.dart';
 import '../../domain/usecases/get_all_categories.dart';
@@ -69,6 +72,9 @@ class CategoryCubit extends Cubit<CategoryState> {
     required this.createCategory,
     required this.updateCategory,
     required this.deleteCategory,
+    required this.searchComments,
+    required this.incrementUsageCount,
+    required this.clipboard,
   }) : super(const CategoryInitial()) {
     _subscribe();
   }
@@ -78,6 +84,9 @@ class CategoryCubit extends Cubit<CategoryState> {
   final CreateCategory createCategory;
   final UpdateCategory updateCategory;
   final DeleteCategory deleteCategory;
+  final SearchComments searchComments;
+  final IncrementUsageCount incrementUsageCount;
+  final ClipboardService clipboard;
 
   StreamSubscription? _categoriesSub;
   final Map<String, StreamSubscription> _countSubs = {};
@@ -187,6 +196,20 @@ class CategoryCubit extends Cubit<CategoryState> {
   }
 
   String _message(Failure f) => f.message;
+
+  Future<List<Comment>> search(String query) async {
+    final r = await searchComments(query);
+    return r.getOrElse((_) => const []);
+  }
+
+  Future<void> copySearchResult(
+    BuildContext context,
+    String commentId,
+    String text,
+  ) async {
+    await clipboard.copyText(context, text);
+    await incrementUsageCount(commentId);
+  }
 
   @override
   Future<void> close() {

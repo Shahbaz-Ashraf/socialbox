@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
-import '../../../../injection_container.dart';
 import '../../domain/entities/social_post.dart';
 import 'post_status_badge.dart';
 
 class PostCard extends StatelessWidget {
-  const PostCard({super.key, required this.post, this.onTap});
+  const PostCard({
+    super.key,
+    required this.post,
+    this.onTap,
+    this.onCopy,
+  });
 
   final SocialPost post;
   final VoidCallback? onTap;
+  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -45,15 +49,13 @@ class PostCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Copy content',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    onPressed: () => getIt<ClipboardService>().copyText(
-                      context,
-                      post.content,
+                  if (onCopy != null)
+                    IconButton(
+                      tooltip: 'Copy content',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      onPressed: onCopy,
                     ),
-                  ),
                   PostStatusBadge(status: post.status),
                 ],
               ),

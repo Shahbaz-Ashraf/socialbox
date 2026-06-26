@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -29,10 +28,7 @@ class PostDetailPage extends StatelessWidget {
           create: (_) => getIt<PostDetailCubit>(param1: postId)..load(),
         ),
         BlocProvider(
-          create: (_) => LogCubit(
-            repository: getIt(),
-            updateLogStatus: getIt(),
-          )..loadForPost(postId),
+          create: (_) => getIt<LogCubit>()..loadForPost(postId),
         ),
       ],
       child: _PostDetailView(postId: postId),
@@ -87,10 +83,7 @@ class _PostDetailView extends StatelessWidget {
               IconButton(
                 tooltip: 'Copy post',
                 icon: const Icon(Icons.copy_rounded),
-                onPressed: () => getIt<ClipboardService>().copyText(
-                  context,
-                  '${post.title}\n\n${post.content}',
-                ),
+                onPressed: () => cubit.copyContent(context),
               ),
               IconButton(
                 tooltip: 'Duplicate post',
@@ -260,6 +253,7 @@ class _PostDetailView extends StatelessWidget {
                           ...logState.logs.map(
                             (l) => LogTile(
                               log: l,
+                              onCopyUrl: context.read<LogCubit>().copyExternalUrl,
                               onStatusChanged: (status) async {
                                 final ok = await context
                                     .read<LogCubit>()

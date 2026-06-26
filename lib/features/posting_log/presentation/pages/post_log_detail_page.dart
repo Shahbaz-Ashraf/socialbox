@@ -5,7 +5,6 @@ import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/log_tile.dart';
 import '../../../../injection_container.dart';
-import '../../domain/repositories/log_repository.dart';
 import '../cubit/log_cubit.dart';
 import '../widgets/log_filter_bar.dart';
 
@@ -16,10 +15,7 @@ class PostLogDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LogCubit(
-        repository: getIt<LogRepository>(),
-        updateLogStatus: getIt(),
-      )..loadForPost(postId),
+      create: (_) => getIt<LogCubit>()..loadForPost(postId),
       child: Scaffold(
         appBar: AppBar(title: const Text('Post Logs')),
         body: Column(
@@ -40,6 +36,7 @@ class PostLogDetailPage extends StatelessWidget {
                         final log = logs[i];
                         return LogTile(
                           log: log,
+                          onCopyUrl: context.read<LogCubit>().copyExternalUrl,
                           onStatusChanged: (status) async {
                             final ok = await context
                                 .read<LogCubit>()

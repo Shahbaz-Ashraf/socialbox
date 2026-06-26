@@ -50,7 +50,7 @@
 | Settings persistence | SharedPreferences JSON wrapper | **Implemented** | All toggles consumed by features |
 | PromptDataSource | AI template, presets, last config | **Implemented** | SharedPreferences |
 | HashtagService | Extract, record, rank hashtag usage | **Implemented** | |
-| OAuthService | Twitter PKCE + LinkedIn/FB code exchange | **Partial** | Profile fetch for Twitter/LinkedIn; FB page picker pending |
+| OAuthService | Twitter PKCE + LinkedIn/FB code exchange | **Partial** | Profile enrichment wired in `AuthRepositoryImpl`; FB page picker pending |
 | DeepLinkHandler | OAuth redirect via `app_links` | **Implemented** | |
 | Dio HTTP client + auth interceptor | Centralized API layer | **Scheduled 2027** | Raw `http` used for OAuth only |
 | NetworkInfo (connectivity check) | Online/offline detection | **Scheduled 2027** | |
@@ -98,8 +98,8 @@
 | Pull-to-refresh on post list | Refresh stream | **Implemented** | `PostListReload` event |
 | Default platforms from settings | Pre-select platforms on new post | **Implemented** | `PostFormCubit.applyDefaultPlatforms` |
 | Reminder offer after scheduling | Dialog → navigate to reminders | **Implemented** | Router passes prefill; form auto-opens |
-| Publish via API | Auto-post to connected platforms | **Scheduled 2027** | No `PostRemoteDataSource` |
-| Publish via API button on detail | Per-platform API publish action | **Scheduled 2027** | |
+| Publish via API | Auto-post to connected platforms | **Scheduled 2027** | No `PostRemoteDataSource`; `PublishViaApi` gated stub |
+| Publish via API button on detail | Per-platform API publish action | **Partial** | UI wired; returns validation message until API layer ships |
 
 ---
 
@@ -146,7 +146,7 @@
 | LinkedIn OAuth 2.0 | Code exchange via HTTP | **Partial** | No profile fetch after token |
 | Facebook OAuth 2.0 | Code exchange via HTTP | **Partial** | No page list / page token picker |
 | Token refresh | Refresh token exchange | **Implemented** | `AuthRepositoryImpl` + `ensureFreshToken` |
-| Profile fetch (username, avatar) | GET /me per platform | **Partial** | Twitter/LinkedIn enriched in `OAuthService`; needs device test |
+| Profile fetch (username, avatar) | GET /me per platform | **Partial** | `enrichWithProfile` called on connect/refresh; needs device test |
 | Facebook page picker | Select page + store page token | **Scheduled 2027** | |
 | Settings: enable API posting toggle | Master switch for auto-posting | **Implemented** | Gated in `PublishViaApi` use case |
 | Settings: auto-refresh tokens toggle | Background token refresh | **Implemented** | `AuthRepositoryImpl` on load/connect |

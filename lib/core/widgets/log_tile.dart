@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../features/posting_log/domain/entities/posting_log.dart';
-import '../../injection_container.dart';
-import '../services/clipboard_service.dart';
 import '../utils/date_utils.dart';
 import '../utils/platform_utils.dart';
 
@@ -12,10 +10,12 @@ class LogTile extends StatelessWidget {
     super.key,
     required this.log,
     this.onStatusChanged,
+    this.onCopyUrl,
   });
 
   final PostingLog log;
   final ValueChanged<LogStatus>? onStatusChanged;
+  final void Function(BuildContext context, String url)? onCopyUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -146,14 +146,11 @@ class LogTile extends StatelessWidget {
                     )
                     .toList(),
               ),
-            if (log.externalPostUrl != null) ...[
+            if (log.externalPostUrl != null && onCopyUrl != null) ...[
               IconButton(
                 tooltip: 'Copy URL',
                 icon: const Icon(Icons.link_rounded),
-                onPressed: () => getIt<ClipboardService>().copyText(
-                  context,
-                  log.externalPostUrl!,
-                ),
+                onPressed: () => onCopyUrl!(context, log.externalPostUrl!),
               ),
               IconButton(
                 tooltip: 'Open post',

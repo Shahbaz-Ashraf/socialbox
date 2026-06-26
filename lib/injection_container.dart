@@ -16,6 +16,8 @@ import 'features/comment_templates/domain/repositories/comment_repository.dart';
 import 'features/comment_templates/domain/usecases/category_usecases.dart';
 import 'features/comment_templates/domain/usecases/comment_usecases.dart';
 import 'features/comment_templates/domain/usecases/get_all_categories.dart';
+import 'features/comment_templates/presentation/cubit/category_cubit.dart';
+import 'features/comment_templates/presentation/cubit/comment_cubit.dart';
 import 'features/hashtags/data/datasources/hashtag_datasource.dart';
 import 'features/hashtags/data/repositories/hashtag_repository_impl.dart';
 import 'features/hashtags/data/services/hashtag_service.dart';
@@ -34,6 +36,8 @@ import 'features/posts/domain/usecases/post_usecases.dart';
 import 'features/posts/domain/usecases/publish_via_api.dart';
 import 'features/posts/presentation/bloc/post_list_bloc.dart';
 import 'features/posts/presentation/cubit/post_detail_cubit.dart';
+import 'features/posts/presentation/cubit/post_form_cubit.dart';
+import 'features/posting_log/presentation/cubit/log_cubit.dart';
 import 'features/reminders/data/datasources/reminder_local_datasource.dart';
 import 'features/reminders/data/repositories/reminder_repository_impl.dart';
 import 'features/reminders/domain/repositories/reminder_repository.dart';
@@ -83,6 +87,7 @@ Future<void> configureDependencies() async {
         getSettings: getIt(),
         updateSettings: getIt(),
         exportCommentsCsv: getIt(),
+        clipboard: getIt(),
       ));
 
   getIt.registerLazySingleton<PromptDataSource>(
@@ -107,6 +112,7 @@ Future<void> configureDependencies() async {
         resetTemplate: getIt(),
         loadPresets: getIt(),
         savePresets: getIt(),
+        clipboard: getIt(),
       ));
 
   // Social Auth -------------------------------------------------------
@@ -169,6 +175,32 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<ToggleFavorite>(() => ToggleFavorite(getIt()));
   getIt.registerFactory<IncrementUsageCount>(
       () => IncrementUsageCount(getIt()));
+  getIt.registerFactory<CategoryCubit>(() => CategoryCubit(
+        repository: getIt(),
+        getAllCategories: getIt(),
+        createCategory: getIt(),
+        updateCategory: getIt(),
+        deleteCategory: getIt(),
+        searchComments: getIt(),
+        incrementUsageCount: getIt(),
+        clipboard: getIt(),
+      ));
+  getIt.registerFactoryParam<CommentCubit, String, void>(
+    (categoryId, _) {
+      final cubit = CommentCubit(
+        repository: getIt(),
+        createComment: getIt(),
+        updateComment: getIt(),
+        deleteComment: getIt(),
+        toggleFavorite: getIt(),
+        incrementUsageCount: getIt(),
+        clipboard: getIt(),
+        watchByCategory: getIt<CommentRepository>().watchCommentsByCategory,
+      );
+      cubit.watchCategory(categoryId);
+      return cubit;
+    },
+  );
 
   // Posts ------------------------------------------------------------
   getIt.registerLazySingleton<PostLocalDataSource>(
@@ -202,13 +234,23 @@ Future<void> configureDependencies() async {
       deletePost: getIt(),
       duplicatePost: getIt(),
       publishViaApi: getIt(),
+      clipboard: getIt(),
     ),
   );
+  getIt.registerFactory<PostFormCubit>(() => PostFormCubit(
+        createPost: getIt(),
+        updatePost: getIt(),
+        getPostById: getIt(),
+        recordHashtagUsage: getIt(),
+        extractHashtags: getIt(),
+        clipboard: getIt(),
+      ));
   getIt.registerFactory<PostListBloc>(() => PostListBloc(
         repository: getIt<PostRepository>(),
         markPostedManually: getIt(),
         deletePost: getIt(),
         publishViaApi: getIt(),
+        clipboard: getIt(),
       ));
 
   // Posting Log ------------------------------------------------------
@@ -222,6 +264,11 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<CreateLogEntry>(() => CreateLogEntry(getIt()));
   getIt.registerFactory<UpdateLogStatus>(() => UpdateLogStatus(getIt()));
   getIt.registerFactory<DeleteLog>(() => DeleteLog(getIt()));
+  getIt.registerFactory<LogCubit>(() => LogCubit(
+        repository: getIt(),
+        updateLogStatus: getIt(),
+        clipboard: getIt(),
+      ));
 
   // Reminders --------------------------------------------------------
   getIt.registerLazySingleton<ReminderLocalDataSource>(
@@ -242,6 +289,7 @@ Future<void> configureDependencies() async {
         repository: getIt<ReminderRepository>(),
         notificationService: getIt<NotificationService>(),
         settingsRepository: getIt<SettingsRepository>(),
+        getAllPosts: getIt(),
       ));
 
   // Dashboard ---------------------------------------------------------
@@ -251,6 +299,8 @@ Future<void> configureDependencies() async {
         logRepo: getIt(),
         reminderRepo: getIt(),
       ));
-  getIt.registerFactory<DashboardCubit>(
-      () => DashboardCubit(getStats: getIt<GetDashboardStats>()));
+  getIt.registerFactory<DashboardCubit>(() => DashboardCubit(
+        getStats: getIt<GetDashboardStats>(),
+        clipboard: getIt(),
+      ));
 }

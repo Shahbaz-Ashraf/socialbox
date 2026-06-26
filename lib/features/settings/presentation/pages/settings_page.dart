@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/platform_utils.dart';
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/app_theme_mode.dart';
@@ -195,10 +194,7 @@ class _SettingsView extends StatelessWidget {
         );
       }
     } else if (action == 'copy') {
-      final csv = await cubit.exportCommentsToClipboard();
-      if (csv != null && context.mounted) {
-        await getIt<ClipboardService>().copyText(context, csv);
-      }
+      await cubit.copyExportToClipboard(context);
     }
   }
 }

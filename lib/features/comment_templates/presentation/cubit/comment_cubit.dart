@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/services/clipboard_service.dart';
 
 import '../../domain/entities/comment_category.dart';
 import '../../domain/repositories/comment_repository.dart';
@@ -65,11 +68,10 @@ class CommentCubit extends Cubit<CommentState> {
     required this.toggleFavorite,
     required this.incrementUsageCount,
     required this.repository,
+    required this.clipboard,
     required Stream<List<Comment>> Function(String) watchByCategory,
   })  : _watchByCategory = watchByCategory,
-        super(const CommentInitial()) {
-    _subscribe();
-  }
+        super(const CommentInitial());
 
   final CreateComment createComment;
   final UpdateComment updateComment;
@@ -77,6 +79,7 @@ class CommentCubit extends Cubit<CommentState> {
   final ToggleFavorite toggleFavorite;
   final IncrementUsageCount incrementUsageCount;
   final CommentRepository repository;
+  final ClipboardService clipboard;
   final Stream<List<Comment>> Function(String) _watchByCategory;
 
   StreamSubscription? _sub;
@@ -158,6 +161,18 @@ class CommentCubit extends Cubit<CommentState> {
   Future<void> copy(Comment c) async {
     await incrementUsageCount(c.id);
   }
+
+  Future<void> copyWithClipboard(BuildContext context, Comment c) async {
+    await clipboard.copyText(context, c.text);
+    await copy(c);
+  }
+
+  Future<bool> restoreDeleted({
+    required String categoryId,
+    required String text,
+    required List<String> tags,
+  }) =>
+      add(categoryId: categoryId, text: text, tags: tags);
 
   @override
   Future<void> close() {

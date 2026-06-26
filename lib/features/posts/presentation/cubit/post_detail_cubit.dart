@@ -1,5 +1,8 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/services/clipboard_service.dart';
 
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/social_post.dart';
@@ -54,11 +57,13 @@ class PostDetailCubit extends Cubit<PostDetailState> {
     required DeletePost deletePost,
     required DuplicatePost duplicatePost,
     required PublishViaApi publishViaApi,
+    required ClipboardService clipboard,
   })  : _getPostById = getPostById,
         _markPostedManually = markPostedManually,
         _deletePost = deletePost,
         _duplicatePost = duplicatePost,
         _publishViaApi = publishViaApi,
+        _clipboard = clipboard,
         super(const PostDetailInitial());
 
   final String postId;
@@ -67,6 +72,7 @@ class PostDetailCubit extends Cubit<PostDetailState> {
   final DeletePost _deletePost;
   final DuplicatePost _duplicatePost;
   final PublishViaApi _publishViaApi;
+  final ClipboardService _clipboard;
 
   Future<void> load() async {
     emit(const PostDetailLoading());
@@ -136,5 +142,11 @@ class PostDetailCubit extends Cubit<PostDetailState> {
     if (s is PostDetailLoaded) return s.post;
     if (s is PostDetailActionInProgress) return s.post;
     return null;
+  }
+
+  Future<void> copyContent(BuildContext context) async {
+    final post = currentPost;
+    if (post == null) return;
+    await _clipboard.copyText(context, '${post.title}\n\n${post.content}');
   }
 }

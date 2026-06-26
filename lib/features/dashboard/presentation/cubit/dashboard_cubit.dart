@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import '../../domain/usecases/get_dashboard_stats.dart';
@@ -36,7 +38,12 @@ class DashboardError extends DashboardState {
 }
 
 class DashboardCubit extends Cubit<DashboardState> {
-  DashboardCubit({required this.getStats}) : super(const DashboardInitial());
+  DashboardCubit({
+    required this.getStats,
+    required this.clipboard,
+  }) : super(const DashboardInitial());
+
+  final ClipboardService clipboard;
 
   final GetDashboardStats getStats;
   Timer? _autoTimer;
@@ -55,6 +62,9 @@ class DashboardCubit extends Cubit<DashboardState> {
     _autoTimer = Timer.periodic(
         const Duration(seconds: 60), (_) => load());
   }
+
+  Future<void> copyLogUrl(BuildContext context, String url) =>
+      clipboard.copyText(context, url);
 
   @override
   Future<void> close() {

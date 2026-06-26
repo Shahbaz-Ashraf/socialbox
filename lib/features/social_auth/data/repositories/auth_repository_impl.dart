@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../domain/entities/connected_account.dart';
@@ -68,8 +69,8 @@ class AuthRepositoryImpl implements AuthRepository {
       if (token == null) {
         return const Left(AuthFailure(message: 'OAuth flow did not complete.'));
       }
-      await _ds.save(platform, token);
-      return Right(ConnectedAccount.fromToken(platform, token));
+      final enriched = await _enrichAndSave(platform, token);
+      return Right(ConnectedAccount.fromToken(platform, enriched));
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
     }
@@ -156,10 +157,19 @@ class AuthRepositoryImpl implements AuthRepository {
       if (refreshed == null) {
         return const Left(AuthFailure(message: 'Refresh failed.'));
       }
-      await _ds.save(platform, refreshed);
-      return Right(ConnectedAccount.fromToken(platform, refreshed));
+      final enriched = await _enrichAndSave(platform, refreshed);
+      return Right(ConnectedAccount.fromToken(platform, enriched));
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
     }
+  }
+
+  Future<OAuthTokenModel> _enrichAndSave(
+    SocialPlatform platform,
+    OAuthTokenModel token,
+  ) async {
+    final enriched = await _oauth.enrichWithProfile(platform, token);
+    await _ds.save(platform, enriched);
+    return enriched;
   }
 }

@@ -1,5 +1,8 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/services/clipboard_service.dart';
 
 import '../../../ai_prompts/domain/entities/ai_post_prefill.dart';
 import '../../../hashtags/domain/usecases/hashtag_usecases.dart';
@@ -116,6 +119,7 @@ class PostFormCubit extends Cubit<PostFormData> {
     required this.getPostById,
     required this.recordHashtagUsage,
     required this.extractHashtags,
+    required this.clipboard,
     PostFormData? initial,
   }) : super(initial ?? const PostFormData());
 
@@ -124,6 +128,7 @@ class PostFormCubit extends Cubit<PostFormData> {
   final GetPostById getPostById;
   final RecordHashtagUsage recordHashtagUsage;
   final ExtractHashtags extractHashtags;
+  final ClipboardService clipboard;
 
   void load(SocialPost post) => emit(PostFormData.fromPost(post));
 
@@ -271,4 +276,16 @@ class PostFormCubit extends Cubit<PostFormData> {
       );
     }
   }
+
+  Future<void> copyContent(BuildContext context) async {
+    final content = state.content.trim();
+    if (content.isEmpty) return;
+    await clipboard.copyText(context, content);
+  }
+
+  Future<void> copyHashtag(BuildContext context, String tag) =>
+      clipboard.copyText(context, '#$tag');
+
+  Future<void> copyText(BuildContext context, String text) =>
+      clipboard.copyText(context, text);
 }

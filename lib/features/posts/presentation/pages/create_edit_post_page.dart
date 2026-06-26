@@ -9,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../core/constants/predefined_categories.dart';
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../ai_prompts/domain/entities/ai_post_prefill.dart';
 import '../../../ai_prompts/domain/entities/prompt_config.dart';
@@ -20,8 +19,6 @@ import '../../../hashtags/presentation/cubit/hashtag_suggestions_cubit.dart';
 import '../../../hashtags/presentation/widgets/hashtag_suggestions_strip.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../../domain/entities/social_post.dart';
-import '../../domain/usecases/post_usecases.dart';
-import '../../../hashtags/domain/usecases/hashtag_usecases.dart';
 import '../cubit/post_form_cubit.dart';
 import '../widgets/platform_chip_selector.dart';
 import '../widgets/recurring_options_sheet.dart';
@@ -43,13 +40,7 @@ class CreateEditPostPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) {
-        final cubit = PostFormCubit(
-          createPost: getIt<CreatePost>(),
-          updatePost: getIt<UpdatePost>(),
-          getPostById: getIt<GetPostById>(),
-          recordHashtagUsage: getIt<RecordHashtagUsage>(),
-          extractHashtags: getIt<ExtractHashtags>(),
-        );
+        final cubit = getIt<PostFormCubit>();
         if (postId != null) {
           cubit.loadById(postId!);
         } else if (aiPrefill != null) {
@@ -139,8 +130,7 @@ class _FormViewState extends State<_FormView> {
                   icon: const Icon(Icons.copy_rounded),
                   onPressed: state.content.trim().isEmpty
                       ? null
-                      : () => getIt<ClipboardService>()
-                          .copyText(context, state.content),
+                      : () => cubit.copyContent(context),
                 ),
                 IconButton(
                   tooltip: 'AI Post Writer',
@@ -271,8 +261,7 @@ class _FormViewState extends State<_FormView> {
                   child: HashtagSuggestionsStrip(
                     existing: state.tags,
                     onAdd: cubit.addTag,
-                    onCopy: (tag) =>
-                        getIt<ClipboardService>().copyText(context, '#$tag'),
+                    onCopy: (tag) => cubit.copyHashtag(context, tag),
                   ),
                 ),
                 if (state.tags.isNotEmpty)
@@ -392,6 +381,7 @@ class _FormViewState extends State<_FormView> {
       platform: state.platforms.isNotEmpty
           ? PromptConfig.platformFromSocial(state.platforms.first)
           : 'LinkedIn',
+      onCopyExtracted: cubit.copyText,
       onApply: (prefill) {
         cubit.loadFromAiPrefill(prefill);
         _titleCtrl.text = prefill.title ?? '';

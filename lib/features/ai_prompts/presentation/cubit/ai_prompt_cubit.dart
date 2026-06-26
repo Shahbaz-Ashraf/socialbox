@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/prompt_config.dart';
 import '../../domain/repositories/prompt_repository.dart';
@@ -53,8 +55,10 @@ class AiPromptCubit extends Cubit<AiPromptState> {
     required ResetPromptTemplate resetTemplate,
     required LoadPromptPresets loadPresets,
     required SavePromptPresets savePresets,
+    required ClipboardService clipboard,
     PromptConfig? initialConfig,
   })  : _saveLastConfig = saveLastConfig,
+        _clipboard = clipboard,
         _saveTemplate = saveTemplate,
         _resetTemplate = resetTemplate,
         _savePresets = savePresets,
@@ -76,6 +80,7 @@ class AiPromptCubit extends Cubit<AiPromptState> {
   final SavePromptTemplate _saveTemplate;
   final ResetPromptTemplate _resetTemplate;
   final SavePromptPresets _savePresets;
+  final ClipboardService _clipboard;
   final PromptBuilder _builder = const PromptBuilder();
 
   void updateConfig(PromptConfig config) {
@@ -164,4 +169,7 @@ class AiPromptCubit extends Cubit<AiPromptState> {
   }
 
   void hidePreview() => emit(state.copyWith(showPreview: false));
+
+  Future<void> copyPrompt(BuildContext context, String prompt) =>
+      _clipboard.copyText(context, prompt);
 }

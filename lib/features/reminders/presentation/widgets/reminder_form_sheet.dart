@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
-import '../../../../injection_container.dart';
 import '../../../posts/domain/entities/social_post.dart';
-import '../../../posts/domain/usecases/post_usecases.dart';
 import '../../domain/entities/reminder.dart';
 
 class ReminderFormSheet extends StatefulWidget {
@@ -15,6 +12,7 @@ class ReminderFormSheet extends StatefulWidget {
     this.prefillTitle,
     this.prefillTime,
     this.linkedPostId,
+    required this.posts,
     this.onSubmit,
   });
 
@@ -22,6 +20,7 @@ class ReminderFormSheet extends StatefulWidget {
   final String? prefillTitle;
   final DateTime? prefillTime;
   final String? linkedPostId;
+  final List<SocialPost> posts;
   final Future<bool> Function(CreateReminderParams params)? onSubmit;
 
   @override
@@ -35,8 +34,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
   late ReminderRepeat _repeat;
   late List<int> _days;
   String? _selectedPostId;
-  List<SocialPost> _posts = const [];
-  bool _loadingPosts = true;
+  late final List<SocialPost> _posts;
 
   @override
   void initState() {
@@ -51,16 +49,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
     _repeat = r?.repeat ?? ReminderRepeat.none;
     _days = List<int>.from(r?.repeatDays ?? const []);
     _selectedPostId = r?.postId ?? widget.linkedPostId;
-    _loadPosts();
-  }
-
-  Future<void> _loadPosts() async {
-    final result = await getIt<GetAllPosts>()(const NoParams());
-    if (!mounted) return;
-    setState(() {
-      _loadingPosts = false;
-      _posts = result.getOrElse((_) => const []);
-    });
+    _posts = widget.posts;
   }
 
   @override
@@ -118,12 +107,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                 labelText: 'Linked post (optional)',
                 border: OutlineInputBorder(),
               ),
-              child: _loadingPosts
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: LinearProgressIndicator(),
-                    )
-                  : DropdownButtonHideUnderline(
+              child: DropdownButtonHideUnderline(
                       child: DropdownButton<String?>(
                         isExpanded: true,
                         value: _selectedPostId,

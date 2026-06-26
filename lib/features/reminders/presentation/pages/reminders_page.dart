@@ -147,14 +147,16 @@ class _RemindersViewState extends State<_RemindersView> {
     );
   }
 
-  void _showForm(
+  Future<void> _showForm(
     BuildContext context, {
     Reminder? existing,
     String? prefillTitle,
     DateTime? prefillTime,
     String? linkedPostId,
-  }) {
+  }) async {
     final bloc = context.read<ReminderBloc>();
+    final posts = await bloc.loadLinkablePosts();
+    if (!context.mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -167,6 +169,7 @@ class _RemindersViewState extends State<_RemindersView> {
         prefillTitle: prefillTitle,
         prefillTime: prefillTime,
         linkedPostId: linkedPostId,
+        posts: posts,
         onSubmit: (params) async {
           if (existing == null) {
             return await bloc.create(params);

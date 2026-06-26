@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
 import '../../data/constants/default_post_writing_prompt.dart';
 import '../cubit/ai_prompt_cubit.dart';
@@ -62,7 +61,7 @@ class _DashboardAiWriterCardBodyState extends State<_DashboardAiWriterCardBody> 
     final cubit = context.read<AiPromptCubit>();
     final prompt = cubit.buildPrompt();
     if (!mounted) return;
-    await getIt<ClipboardService>().copyText(context, prompt);
+    await cubit.copyPrompt(context, prompt);
     HapticFeedback.mediumImpact();
   }
 
@@ -70,7 +69,7 @@ class _DashboardAiWriterCardBodyState extends State<_DashboardAiWriterCardBody> 
     if (_topicCtrl.text.trim().isEmpty) return;
     final cubit = context.read<AiPromptCubit>();
     final prompt = cubit.buildPrompt();
-    await getIt<ClipboardService>().copyText(context, prompt);
+    await cubit.copyPrompt(context, prompt);
     HapticFeedback.mediumImpact();
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -97,6 +96,7 @@ class _DashboardAiWriterCardBodyState extends State<_DashboardAiWriterCardBody> 
       context,
       topic: _topicCtrl.text.trim(),
       platform: config.platform,
+      onCopyExtracted: context.read<AiPromptCubit>().copyPrompt,
     );
   }
 

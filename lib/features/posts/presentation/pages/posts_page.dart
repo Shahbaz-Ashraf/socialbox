@@ -153,12 +153,14 @@ class _PostList extends StatelessWidget {
         itemCount: posts.length,
         itemBuilder: (context, i) {
           final p = posts[i];
+          final bloc = context.read<PostListBloc>();
           return PostCard(
             post: p,
             onTap: () => context.pushNamed(
               RouteNames.postDetail,
               pathParameters: {'id': p.id},
             ),
+            onCopy: () => bloc.copyContent(context, p.content),
           );
         },
       ),

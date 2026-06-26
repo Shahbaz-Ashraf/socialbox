@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/comment_category.dart' show Comment;
-import '../../domain/repositories/comment_repository.dart';
-import '../../domain/usecases/comment_usecases.dart';
 import '../cubit/comment_cubit.dart';
 import '../widgets/add_comment_bottom_sheet.dart';
 import '../widgets/comment_tile.dart';
@@ -18,19 +15,7 @@ class CommentsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) {
-        final cubit = CommentCubit(
-          repository: getIt<CommentRepository>(),
-          createComment: getIt<CreateComment>(),
-          updateComment: getIt<UpdateComment>(),
-          deleteComment: getIt<DeleteComment>(),
-          toggleFavorite: getIt<ToggleFavorite>(),
-          incrementUsageCount: getIt<IncrementUsageCount>(),
-          watchByCategory: getIt<CommentRepository>().watchCommentsByCategory,
-        );
-        cubit.watchCategory(categoryId);
-        return cubit;
-      },
+      create: (_) => getIt<CommentCubit>(param1: categoryId),
       child: _CommentsView(categoryId: categoryId),
     );
   }
@@ -137,8 +122,7 @@ class _CommentsViewState extends State<_CommentsView> {
                 final c = visible[i];
                 return CommentTile(
                   comment: c,
-                  clipboard: getIt<ClipboardService>(),
-                  onCopy: () => _copy(context, c),
+                  onCopy: () => cubit.copyWithClipboard(context, c),
                   onToggleFavorite: () async {
                     final ok = await cubit.toggleFav(c.id);
                     if (!ok && context.mounted) {
@@ -213,13 +197,6 @@ class _CommentsViewState extends State<_CommentsView> {
     );
   }
 
-  Future<void> _copy(BuildContext context, Comment c) async {
-    final clipboard = getIt<ClipboardService>();
-    await clipboard.copyText(context, c.text);
-    if (!context.mounted) return;
-    await context.read<CommentCubit>().copy(c);
-  }
-
   Future<void> _confirmAndDelete(BuildContext context, Comment c) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -274,20 +251,17 @@ class _CommentsViewState extends State<_CommentsView> {
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () async {
-            final restored = await getIt<CreateComment>()(
-              CreateCommentParams(
-                categoryId: deleted.categoryId,
-                text: deleted.text,
-                tags: deleted.tags,
-              ),
+            final ok = await cubit.restoreDeleted(
+              categoryId: deleted.categoryId,
+              text: deleted.text,
+              tags: deleted.tags,
             );
             if (!context.mounted) return;
-            restored.fold(
-              (_) => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Could not restore comment')),
-              ),
-              (_) => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Comment restored')),
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  ok ? 'Comment restored' : 'Could not restore comment',
+                ),
               ),
             );
           },

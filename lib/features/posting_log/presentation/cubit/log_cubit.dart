@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/services/clipboard_service.dart';
 
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/posting_log.dart';
@@ -74,6 +77,7 @@ class LogCubit extends Cubit<LogState> {
   LogCubit({
     required this.repository,
     UpdateLogStatus? updateLogStatus,
+    required this.clipboard,
   })  : _updateLogStatus = updateLogStatus,
         super(const LogInitial()) {
     _subscribe();
@@ -81,6 +85,7 @@ class LogCubit extends Cubit<LogState> {
 
   final LogRepository repository;
   final UpdateLogStatus? _updateLogStatus;
+  final ClipboardService clipboard;
   StreamSubscription? _sub;
 
   void _subscribe() {
@@ -132,6 +137,9 @@ class LogCubit extends Cubit<LogState> {
     final result = await useCase(UpdateLogStatusParams(id: logId, status: status));
     return result.isRight();
   }
+
+  Future<void> copyExternalUrl(BuildContext context, String url) =>
+      clipboard.copyText(context, url);
 
   @override
   Future<void> close() {

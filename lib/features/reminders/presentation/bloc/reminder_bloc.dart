@@ -4,6 +4,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/usecases/usecase.dart';
+import '../../../posts/domain/entities/social_post.dart';
+import '../../../posts/domain/usecases/post_usecases.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../data/mappers/reminder_notification_mapper.dart';
 import '../../domain/entities/reminder.dart';
@@ -119,6 +122,7 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     required this.repository,
     required this.notificationService,
     required this.settingsRepository,
+    required this.getAllPosts,
   }) : super(const ReminderInitial()) {
     on<ReminderLoad>(_onLoad);
     on<ReminderCreate>(_onCreate);
@@ -131,8 +135,14 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
   final ReminderRepository repository;
   final NotificationService notificationService;
   final SettingsRepository settingsRepository;
+  final GetAllPosts getAllPosts;
 
   StreamSubscription<List<Reminder>>? _sub;
+
+  Future<List<SocialPost>> loadLinkablePosts() async {
+    final result = await getAllPosts(const NoParams());
+    return result.getOrElse((_) => const []);
+  }
 
   bool get _notificationsEnabled =>
       settingsRepository.getSettings().enableNotifications;

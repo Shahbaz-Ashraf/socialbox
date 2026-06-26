@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../../domain/usecases/post_usecases.dart';
@@ -64,6 +66,7 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
     required this.markPostedManually,
     required this.deletePost,
     required this.publishViaApi,
+    required this.clipboard,
   }) : super(const PostListInitial()) {
     on<PostListLoad>(_onLoad);
     on<PostListReload>(_onReload);
@@ -77,8 +80,12 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
   final MarkPostedManually markPostedManually;
   final DeletePost deletePost;
   final PublishViaApi publishViaApi;
+  final ClipboardService clipboard;
 
   StreamSubscription? _sub;
+
+  Future<void> copyContent(BuildContext context, String content) =>
+      clipboard.copyText(context, content);
 
   Future<void> _onLoad(PostListLoad event, Emitter<PostListState> emit) async {
     await _subscribe(emit);

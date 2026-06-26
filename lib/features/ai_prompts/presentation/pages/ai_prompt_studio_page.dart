@@ -4,13 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
 import '../../data/constants/default_post_writing_prompt.dart';
 import '../../domain/constants/prompt_options.dart';
 import '../../domain/entities/prompt_config.dart';
-import '../../domain/repositories/prompt_repository.dart';
-import '../../domain/usecases/prompt_usecases.dart';
 import '../cubit/ai_prompt_cubit.dart';
 import '../widgets/paste_ai_response_sheet.dart';
 
@@ -58,17 +55,13 @@ class AiPromptStudioPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AiPromptCubit(
-        repository: getIt<PromptRepository>(),
-        loadLastConfig: getIt<LoadLastPromptConfig>(),
-        saveLastConfig: getIt<SaveLastPromptConfig>(),
-        loadTemplate: getIt<LoadPromptTemplate>(),
-        saveTemplate: getIt<SavePromptTemplate>(),
-        resetTemplate: getIt<ResetPromptTemplate>(),
-        loadPresets: getIt<LoadPromptPresets>(),
-        savePresets: getIt<SavePromptPresets>(),
-        initialConfig: initialConfig,
-      ),
+      create: (_) {
+        final cubit = getIt<AiPromptCubit>();
+        if (initialConfig != null) {
+          cubit.updateConfig(initialConfig!);
+        }
+        return cubit;
+      },
       child: const _StudioView(),
     );
   }
@@ -130,8 +123,9 @@ class _StudioViewState extends State<_StudioView>
     return BlocConsumer<AiPromptCubit, AiPromptState>(
       listener: (context, state) {
         if (state.showPreview) {
-          _showPreviewSheet(context, state.builtPrompt);
-          context.read<AiPromptCubit>().hidePreview();
+          final cubit = context.read<AiPromptCubit>();
+          _showPreviewSheet(context, state.builtPrompt, cubit);
+          cubit.hidePreview();
         }
         if (!_synced) {
           _synced = true;
@@ -225,6 +219,8 @@ class _StudioViewState extends State<_StudioView>
                         context,
                         topic: state.config.topic,
                         platform: state.config.platform,
+                        onCopyExtracted:
+                            context.read<AiPromptCubit>().copyPrompt,
                       ),
                     ),
                   ),
@@ -243,7 +239,7 @@ class _StudioViewState extends State<_StudioView>
 
   Future<void> _copyPrompt(BuildContext context, AiPromptCubit cubit) async {
     final prompt = cubit.buildPrompt();
-    await getIt<ClipboardService>().copyText(context, prompt);
+    await cubit.copyPrompt(context, prompt);
     HapticFeedback.mediumImpact();
   }
 
@@ -269,7 +265,7 @@ class _StudioViewState extends State<_StudioView>
     }
   }
 
-  void _showPreviewSheet(BuildContext context, String prompt) {
+  void _showPreviewSheet(BuildContext context, String prompt, AiPromptCubit cubit) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -297,8 +293,7 @@ class _StudioViewState extends State<_StudioView>
                   ),
                   IconButton(
                     icon: const Icon(Icons.content_copy_rounded),
-                    onPressed: () =>
-                        getIt<ClipboardService>().copyText(sheetCtx, prompt),
+                    onPressed: () => cubit.copyPrompt(sheetCtx, prompt),
                   ),
                 ],
               ),

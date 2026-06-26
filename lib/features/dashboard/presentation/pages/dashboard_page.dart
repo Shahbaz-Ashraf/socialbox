@@ -86,7 +86,10 @@ class _DashboardView extends StatelessWidget {
                   const SizedBox(height: 20),
                   _UpcomingReminders(reminders: state.stats.upcomingReminders),
                   const SizedBox(height: 20),
-                  _RecentActivity(logs: state.stats.recentActivity),
+                  _RecentActivity(
+                    logs: state.stats.recentActivity,
+                    onCopyUrl: context.read<DashboardCubit>().copyLogUrl,
+                  ),
                   const SizedBox(height: 24),
                   _PlatformBreakdown(counts: state.stats.platformCounts),
                 ],
@@ -227,8 +230,9 @@ class _UpcomingReminders extends StatelessWidget {
 }
 
 class _RecentActivity extends StatelessWidget {
-  const _RecentActivity({required this.logs});
+  const _RecentActivity({required this.logs, required this.onCopyUrl});
   final List logs;
+  final void Function(BuildContext context, String url) onCopyUrl;
   @override
   Widget build(BuildContext context) {
     return _Section(
@@ -237,8 +241,11 @@ class _RecentActivity extends StatelessWidget {
       child: logs.isEmpty
           ? const _EmptyHint('No recent activity.')
           : Column(
-              children:
-                  logs.map<Widget>((l) => LogTile(log: l)).toList(),
+              children: logs
+                  .map<Widget>(
+                    (l) => LogTile(log: l, onCopyUrl: onCopyUrl),
+                  )
+                  .toList(),
             ),
     );
   }

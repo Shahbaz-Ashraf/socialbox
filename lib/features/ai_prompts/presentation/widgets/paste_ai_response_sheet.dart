@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
-import '../../../../core/services/clipboard_service.dart';
-import '../../../../injection_container.dart';
 import '../../domain/entities/ai_post_prefill.dart';
 import '../../domain/services/ai_response_parser.dart';
 
@@ -13,6 +11,7 @@ Future<void> showPasteAiResponseSheet(
   String? topic,
   String platform = 'LinkedIn',
   void Function(AiPostPrefill prefill)? onApply,
+  Future<void> Function(BuildContext context, String text)? onCopyExtracted,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -24,6 +23,7 @@ Future<void> showPasteAiResponseSheet(
       topic: topic,
       platform: platform,
       onApply: onApply,
+      onCopyExtracted: onCopyExtracted,
     ),
   );
 }
@@ -33,11 +33,13 @@ class _PasteAiResponseSheet extends StatefulWidget {
     this.topic,
     required this.platform,
     this.onApply,
+    this.onCopyExtracted,
   });
 
   final String? topic;
   final String platform;
   final void Function(AiPostPrefill prefill)? onApply;
+  final Future<void> Function(BuildContext context, String text)? onCopyExtracted;
 
   @override
   State<_PasteAiResponseSheet> createState() => _PasteAiResponseSheetState();
@@ -157,14 +159,15 @@ class _PasteAiResponseSheetState extends State<_PasteAiResponseSheet> {
                             ),
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Copy extracted content',
-                          icon: const Icon(Icons.copy_rounded),
-                          onPressed: () => getIt<ClipboardService>().copyText(
-                            context,
-                            parsed.content,
+                        if (widget.onCopyExtracted != null)
+                          IconButton(
+                            tooltip: 'Copy extracted content',
+                            icon: const Icon(Icons.copy_rounded),
+                            onPressed: () => widget.onCopyExtracted!(
+                              context,
+                              parsed.content,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
