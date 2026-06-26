@@ -5,6 +5,20 @@
 > **For Claude Code:** Read this file fully at the start of every session. Never skip sections.
 > Current session state is in `STATUS.md`.
 
+### Related documentation (read before editing)
+
+| File | Use when |
+|------|----------|
+| [`agents.md`](agents.md) | Session startup, build commands, known pitfalls |
+| [`schema.md`](schema.md) | Drift tables, DAOs, migrations, JSON columns |
+| [`api.md`](api.md) | OAuth flows, Twitter/LinkedIn/Facebook endpoints |
+| [`keys.md`](keys.md) | Storage keys, redirect URIs, secrets handling |
+| [`features.md`](features.md) | Feature inventory and implementation status |
+| [`quickref.md`](quickref.md) | One-page cheat sheet |
+| [`STATUS.md`](STATUS.md) | Last session compile issues and goals |
+
+> **Note:** On Windows, `claude.md` and `CLAUDE.md` are the same file — this document is the canonical architecture reference.
+
 ---
 
 ## 1. Project Overview
@@ -16,8 +30,9 @@
 | **Tagline** | Organize, schedule, and track your social media content |
 | **Platforms** | Android (primary), Windows (secondary) |
 | **Developer** | Shahbaz / Linkedif |
-| **State Mgmt** | BLoC + Cubit |
-| **Architecture** | Clean Architecture, Features-First |
+| **State Mgmt** | Mixed **BLoC + Cubit** (`flutter_bloc`) |
+| **Presentation Pattern** | **MVVM** (View ↔ ViewModel ↔ Model) |
+| **Architecture** | **Features-First Clean Architecture** |
 | **Local DB** | Drift (SQLite) |
 | **DI** | get_it + injectable |
 
@@ -34,16 +49,129 @@ Social media managers and content creators need:
 
 ## 2. Architecture
 
+### Official Stack (NON-NEGOTIABLE TARGET)
+
+SocialBox follows **Features-First Clean Architecture** with **MVVM presentation** and **mixed state management** using **BLoC or Cubit** from `flutter_bloc`.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  FEATURES-FIRST  →  CLEAN ARCHITECTURE  →  MVVM  →  BLoC/Cubit │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### Layer Rule (STRICTLY ENFORCED)
 
 ```
 Presentation  →  Domain  ←  Data
-(BLoC/Cubit)    (UseCases)   (Repositories + DataSources)
+(ViewModel)       (UseCases)   (Repositories + DataSources)
+ BLoC / Cubit
 ```
 
-- **Domain**: Pure Dart only. Zero Flutter or package dependencies. Contains entities, repository interfaces, use cases.
+| Layer | Role | Contains | Must NOT import |
+|-------|------|----------|-----------------|
+| **Presentation** | MVVM View + ViewModel | `pages/`, `widgets/`, `bloc/` or `cubit/` | DataSources, DAOs, Drift |
+| **Domain** | Business rules | `entities/`, `repositories/` (interfaces), `usecases/` | Flutter, Drift, Dio |
+| **Data** | Persistence & APIs | `datasources/`, `models/`, `repositories/` (impl) | BLoC, Cubit, `BuildContext` |
+
+- **Domain**: Pure Dart only. Zero Flutter or package dependencies.
 - **Data**: Implements domain repository interfaces. Uses Drift, Dio, FlutterSecureStorage.
-- **Presentation**: Flutter + BLoC/Cubit. Calls use cases only — never data sources or repositories directly.
+- **Presentation**: Flutter + BLoC/Cubit as ViewModels. **Calls use cases only** — never data sources or repositories directly from widgets.
+
+### MVVM Mapping (Presentation Layer)
+
+| MVVM | SocialBox | Location |
+|------|-----------|----------|
+| **Model** | Domain entities + value objects | `domain/entities/` |
+| **ViewModel** | `Bloc` or `Cubit` | `presentation/bloc/` or `presentation/cubit/` |
+| **View** | Stateless/Stateful widgets | `presentation/pages/`, `presentation/widgets/` |
+
+**View rules:**
+
+- Views **observe** state via `BlocBuilder` / `BlocConsumer` / `BlocListener`
+- Views **dispatch** actions via `context.read<ViewModel>().method()` or `bloc.add(Event())`
+- Views **must not** call `getIt<>()`, repositories, use cases, or data sources directly
+- `BlocProvider` is created at **route/page** level; child widgets receive ViewModel via `context`
+
+**Page shell pattern (required for new screens):**
+
+```dart
+class FeaturePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => getIt<FeatureCubit>()..load(),
+      child: const _FeatureView(),
+    );
+  }
+}
+
+class _FeatureView extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<FeatureCubit, FeatureState>(
+      builder: (context, state) => switch (state) {
+        FeatureLoading() => const LoadingWidget(),
+        FeatureLoaded(:final data) => FeatureContent(data: data),
+        FeatureError(:final message) => ErrorRetryWidget(message: message),
+        _ => const SizedBox.shrink(),
+      },
+    );
+  }
+}
+```
+
+### Mixed BLoC + Cubit Strategy
+
+Both are first-class. Choose based on **flow complexity**, not personal preference.
+
+| Use **Cubit** when | Use **BLoC** when |
+|--------------------|-------------------|
+| Single-action methods (`load()`, `toggle()`, `save()`) | Multiple distinct **event types** drive the same screen |
+| Straightforward CRUD or form state | Concurrent async flows (load + filter + side effect) |
+| One user intent maps to one method call | You need an **event log** / replay / middleware-style handling |
+| State is a form snapshot or simple loaded/error | Branching workflows: connect → poll → success/fail/cancel |
+
+| Feature (current / target) | Recommended |
+|----------------------------|-------------|
+| Settings, dashboard stats, AI prompt config | **Cubit** |
+| Comment list, category grid, post form | **Cubit** (or **Bloc** if events proliferate) |
+| Post list (filter + delete + mark-posted + stream) | **Bloc** (target — migrate when touching) |
+| Reminders (CRUD + schedule notification side effects) | **Bloc** (target) |
+| Social auth (connect / disconnect / refresh per platform) | **Bloc** (target) |
+| OAuth + API publish pipeline (Phase 6) | **Bloc** |
+
+**Folder convention:** use `presentation/cubit/` or `presentation/bloc/` per feature — name the folder after what you implement.
+
+**Bloc structure (when used):**
+
+```dart
+// presentation/bloc/feature_event.dart
+sealed class FeatureEvent {
+  const FeatureEvent();
+  const factory FeatureEvent.load() = FeatureLoad;
+  const factory FeatureEvent.delete({required String id}) = FeatureDelete;
+}
+
+// presentation/bloc/feature_state.dart — prefer @freezed on new code
+// presentation/bloc/feature_bloc.dart
+class FeatureBloc extends Bloc<FeatureEvent, FeatureState> {
+  FeatureBloc(this._useCase) : super(const FeatureState.initial()) {
+    on<FeatureLoad>(_onLoad);
+    on<FeatureDelete>(_onDelete);
+  }
+}
+```
+
+**Cubit structure (when used):**
+
+```dart
+class FeatureCubit extends Cubit<FeatureState> {
+  FeatureCubit(this._loadUseCase) : super(const FeatureState.initial());
+  Future<void> load() async { /* emit states, call use case */ }
+}
+```
+
+New code: prefer `@freezed` for states; use `sealed class` for Bloc events.
 
 ### Feature-First Folder Convention
 
@@ -59,18 +187,39 @@ features/
       repositories/
       usecases/
     presentation/
-      bloc/    ← or cubit/
-      pages/
+      bloc/    ← Event-driven ViewModels (complex flows)
+      cubit/   ← Method-driven ViewModels (simple flows)
+      pages/   ← MVVM Views (UI only)
       widgets/
 ```
 
-### State Management Rules
+Every feature **must** have `domain/` + `presentation/`. Features that persist or call APIs **must** also have `data/`. Aggregator features (e.g. dashboard) may omit `data/` if they only orchestrate other repositories via use cases.
 
-| Scenario | Use |
-|----------|-----|
-| Complex flow with multiple event types + side effects | **BLoC** (events + states) |
-| Simple CRUD / toggle / load | **Cubit** |
-| Never | Direct repository calls from widgets |
+### Expansion Policy (CRITICAL — READ BEFORE EVERY CHANGE)
+
+SocialBox is an **expanding** product. Fixes and refactors **add or wire capability** — they do **not** remove it.
+
+| Rule | Meaning |
+|------|---------|
+| **No feature regression** | Do not delete screens, routes, use cases, DB tables/columns, or user-visible actions to “fix” compile errors |
+| **No simplification by removal** | Do not drop partial implementations (orphan routes, unwired toggles, stub datasources) — **complete or wire them** |
+| **Fix forward** | Resolve errors by adding missing layers (repository, use case, ViewModel), fixing types, or correcting imports — not by commenting out or deleting code |
+| **Preserve behavior** | A bug fix must keep existing behavior working; improvements are additive |
+| **Refactor = relocate** | Moving logic from a View into a Cubit/Bloc is allowed; deleting the feature is not |
+| **Deprecation requires approval** | Removing any user-facing feature needs explicit owner approval |
+
+When adding a feature: extend `features.md` status. When fixing architecture violations: **wrap** non-compliant code in proper layers without shrinking scope.
+
+### Current Codebase vs Target (migration, not deletion)
+
+The app today is **Cubit-heavy** with some View-layer violations (`PostDetailPage`, `SettingsPage` export, `SocialAccountsPage` credentials). When touching these files, **migrate toward** the target above — do **not** remove the screen or feature.
+
+Known gaps to close incrementally (preserve all functionality):
+
+- `SettingsCubit` → add repository + use cases (keep all settings fields)
+- `AiPromptCubit` → add repository + use cases (keep template/presets/config)
+- `PostDetailPage` → extract `PostDetailCubit` (keep mark-posted, delete, AI link, logs)
+- Cubit-only flows that need Bloc → add Bloc **alongside** or **replace ViewModel** without removing UI actions
 
 ### DI Rules
 
@@ -1926,14 +2075,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/comment.dart';
 ```
 
-### BLoC Rules
+### BLoC / Cubit / MVVM Rules
 
-- One BLoC/Cubit per feature concern (not per page)
-- States: always `@freezed` sealed classes
-- Events: always `sealed class` (no Equatable needed)
+- One **BLoC or Cubit per feature concern** (not per page) — the ViewModel
+- **Views** never call repositories, use cases, or `getIt` — only the ViewModel does
+- **Bloc** for multi-event flows; **Cubit** for method-driven flows (see §2 Mixed Strategy)
+- States: `@freezed` sealed classes on **new** code; migrate legacy Equatable states when editing
+- Bloc events: always `sealed class`
 - No `if/else` chains in widget `build()` → use `switch` pattern matching on state
 - Never emit loading state if the operation is < 100ms (causes flicker)
-- All BLoC/Cubit instances are registered in DI, never `new`-ed manually
+- All BLoC/Cubit instances registered in DI; `BlocProvider.create` may use `getIt` at page level only
+- **Never remove features** when applying these rules — refactor presentation, don't shrink the app (see §2 Expansion Policy)
 
 ### Error Handling
 

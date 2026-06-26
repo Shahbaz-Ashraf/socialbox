@@ -49,7 +49,9 @@ final appRouter = GoRouter(
                     .toList(),
               );
               if (qp['platform'] != null) {
-                initial = initial.copyWith(platform: qp['platform']!);
+                initial = initial.copyWith(
+                  platform: PromptConfig.normalizePlatform(qp['platform']!),
+                );
               }
             }
             return AiPromptStudioPage(initialConfig: initial);

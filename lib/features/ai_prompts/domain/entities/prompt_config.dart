@@ -3,6 +3,25 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/utils/platform_utils.dart';
 
 class PromptConfig extends Equatable {
+  static const aiPlatforms = ['LinkedIn', 'X', 'Facebook'];
+
+  /// Maps [SocialPlatform] / legacy display names to AI writer dropdown values.
+  static String normalizePlatform(String value) {
+    final p = value.trim();
+    if (aiPlatforms.contains(p)) return p;
+    if (p.toLowerCase().contains('twitter') || p == 'X') return 'X';
+    if (p.toLowerCase().contains('linkedin')) return 'LinkedIn';
+    if (p.toLowerCase().contains('facebook')) return 'Facebook';
+    return 'LinkedIn';
+  }
+
+  static String platformFromSocial(SocialPlatform platform) =>
+      switch (platform) {
+        SocialPlatform.facebook => 'Facebook',
+        SocialPlatform.linkedin => 'LinkedIn',
+        SocialPlatform.twitter => 'X',
+      };
+
   const PromptConfig({
     this.topic = '',
     this.primaryKeyword = '',
@@ -11,8 +30,7 @@ class PromptConfig extends Equatable {
     this.targetAudience =
         'Aspiring Flutter developers, Junior Flutter engineers, Self-taught developers',
     this.brandArchetype = 'The Builder',
-    this.postGoal =
-        'Maximize Comments + Thought Leadership — prioritize real conversations',
+    this.postGoal = 'Maximize Comments + Thought Leadership',
     this.wordLimit =
         '180–280 words for technical storytelling. Under 160 for quick tips.',
     this.emojiRange = '3 to 5 (placed at emotional peaks)',
@@ -69,7 +87,7 @@ class PromptConfig extends Equatable {
         topic: json['topic'] as String? ?? '',
         primaryKeyword: json['primaryKeyword'] as String? ?? '',
         secondaryKeywords: json['secondaryKeywords'] as String? ?? '',
-        platform: json['platform'] as String? ?? 'LinkedIn',
+        platform: normalizePlatform(json['platform'] as String? ?? 'LinkedIn'),
         targetAudience: json['targetAudience'] as String? ?? '',
         brandArchetype: json['brandArchetype'] as String? ?? 'The Builder',
         postGoal: json['postGoal'] as String? ?? '',
@@ -102,7 +120,7 @@ class PromptConfig extends Equatable {
     List<String>? tags,
   }) {
     final platform = platforms != null && platforms.isNotEmpty
-        ? platforms.first.displayName
+        ? platformFromSocial(platforms.first)
         : 'LinkedIn';
     final keywords = tags?.take(3).map((t) => t.replaceAll('#', '')).join(', ');
     return PromptConfig(

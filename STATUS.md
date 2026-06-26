@@ -1,112 +1,200 @@
 # Session Status — SocialBox
 
-**Last session:** 2026-06-18 (terminated)
-**Today's date:** 2026-06-18
-**Goal of current session:** Restore project to clean compile + runnable state.
+**Last updated:** 2026-06-26  
+**App state:** Compiles and runs on Android (Infinix X6853). Device testing completed across all main screens.  
+**Full inventory:** See `features.md` (82 implemented · 23 partial · 6 pending · 39 scheduled 2027)
+
+### Architecture policy (all sessions)
+
+- **Stack:** Features-First Clean Architecture · **MVVM** · mixed **BLoC or Cubit** — see `CLAUDE.md` §2
+- **Expansion only:** When fixing bugs or adding features, **do not remove** screens, routes, use cases, DB fields, or user actions. Wire partial code forward; never shrink the app to compile.
+- **Migration targets:** `PostDetailCubit`, settings/AI prompt repositories + use cases, Bloc for auth/reminders/post-list — without dropping existing UI
 
 ---
 
 ## Project Snapshot
 
-- **Project:** SocialBox — Flutter social media post & comment manager (com.linkedif.socialbox)
-- **Platforms:** Android (primary), Windows (secondary)
-- **Architecture:** Clean Architecture + BLoC/Cubit + Drift + GoRouter + GetIt
-- **Flutter:** 3.41.7 stable (Dart 3.11.5)
-- **Codebase:** Very extensive — full feature folders exist for all 7 features (comment_templates, posts, posting_log, reminders, social_auth, dashboard, settings, hashtags)
-- **Test dir:** `test/` exists but is empty
+| Key | Value |
+|-----|-------|
+| Package | `com.linkedif.socialbox` |
+| Architecture | Clean Architecture · BLoC/Cubit · Drift · GoRouter · GetIt |
+| DB schema | v2 (`hashtag_suggestions` table) |
+| Bottom nav | Home · Calendar · Comments · Posts · Settings |
+| Docs | `CLAUDE.md`, `features.md`, `schema.md`, `api.md`, `keys.md`, `agents.md`, `quickref.md` |
+
+### Build (Windows, project on `I:`)
+
+```powershell
+$env:PUB_CACHE = "I:\.pub-cache"
+Set-Location I:\Posts\socialbox
+flutter pub get
+flutter pub run build_runner build --delete-conflicting-outputs
+flutter run -d <device_id>
+```
 
 ---
 
-## Implementation Status by Phase (from CLAUDE.md)
+## Not Implemented — By Priority
 
-| Phase | Feature | Code Status | Compile? |
-|-------|---------|------------|----------|
-| 1 | Foundation (DB, DI, theme, routing, shell) | Implemented | Mostly |
-| 2 | Comment Templates (CRUD, copy) | Implemented | Mostly |
-| 3 | Posts Manager | Implemented | Mostly |
-| 4 | Posting Log | Implemented | Mostly |
-| 5 | Reminders | Implemented | Mostly |
-| 6 | Social Auth + API | Partially implemented | NO |
-| 7 | Dashboard + Polish | Mostly stubs | Mostly |
+### P1 — High-value gaps (current roadmap)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Copy post content to clipboard | **Not implemented** | No copy on `PostDetailPage`, post cards, or create/edit form |
+| Copy extracted AI post (one tap) | **Not implemented** | Paste sheet shows `SelectableText` only; no copy button on parsed content |
+| Copy posting log external URL | **Not implemented** | `LogTile` opens URL; no “copy link” |
+| Copy hashtags to clipboard | **Not implemented** | Chips insert into form; no copy action |
+| Posting Log in-app navigation | **Partial** | `/logs` route exists; no bottom-nav or settings link |
+| Per-post log detail route link | **Partial** | Route exists; not linked from post detail |
+| Settings toggles actually applied | **Partial** | `defaultPlatforms`, `enableNotifications`, `reminderLeadMinutes`, `enableApiPosting` saved but not consumed |
+| Reminder prefill from create-post | **Partial** | Navigation passes `extra`; `RemindersPage` ignores it |
+| Notification tap → deep link | **Not implemented** | `NotificationService` callback not wired in `main.dart` |
+| Duplicate post UI | **Partial** | Use case registered; no button in UI |
+| Image attachments UI | **Partial** | DB field + picker dep exist; no form UI |
+| Pull-to-refresh on post list | **Partial** | `onRefresh` callback empty |
+| Category drag-reorder | **Pending** | No reorder UI |
+| Swipe-delete undo SnackBar | **Partial** | Confirm dialog only; no undo |
+| Update log status (edit pending/failed) | **Pending** | Use case not built |
+| Platform log row (status dots) | **Pending** | Widget not built |
+| BLoC debug observer | **Pending** | Not registered in `main.dart` |
+| Dedicated hashtag management page | **Scheduled 2027** | Strip-only UI today |
+| Export CSV to clipboard | **Not implemented** | Settings export uses `Share.share` only |
+
+### P2 — Clipboard polish (implemented core, missing pieces)
+
+**Implemented today**
+
+- `ClipboardService` — copy + haptic + snackbar (DI singleton)
+- Comment copy — tile tap, icon, menu, long-press; usage count++
+- Global comment search copy + usage count
+- AI prompt copy — studio, dashboard card, preview sheet
+- Copy + open external AI (ChatGPT, Gemini, Claude, Copilot)
+- Paste AI response — read clipboard on open + manual paste button; parse → new/edit post
+
+**Not implemented / cleanup needed**
+
+| Item | Detail |
+|------|--------|
+| `copy_feedback_snackbar.dart` | Specified in `CLAUDE.md`; never created (logic inlined in `ClipboardService`) |
+| `CommentTile.clipboard` param | Passed from parent but unused in widget |
+| Search delegate double-copy | Calls `Clipboard.setData` then `ClipboardService().copyText` (bypasses DI) |
+| `_copyAndOpen` inconsistency | Raw `Clipboard.setData` + custom snackbar instead of `ClipboardService` |
+| Copy after “Mark as posted” | No shortcut to copy content for manual paste on platform |
+
+### P3 — Social Auth + API (Phase 6 — mostly not implemented)
+
+| Feature | Status |
+|---------|--------|
+| `PostRemoteDataSource` | **Not implemented** — file does not exist |
+| Publish via API use case / UI | **Scheduled 2027** |
+| Profile fetch after OAuth (Twitter/LinkedIn) | **Partial** — token stored; profile not loaded into UI |
+| Facebook page picker | **Not implemented** |
+| Auto token refresh before API calls | **Not implemented** (`autoRefreshTokens` setting unused) |
+| Dio client + auth interceptor | **Scheduled 2027** — OAuth uses raw `http` |
+| OAuth compile issues | **May remain** — verify `oauth_service.dart` against `flutter_appauth` API |
+
+### P4 — Background & automation (Scheduled 2027)
+
+| Feature | Status |
+|---------|--------|
+| WorkManager in `main.dart` | **Not wired** |
+| Scheduled posting executor | **Not implemented** (`PostDao.getPostsDueForPosting` exists) |
+| Recurring post auto-create next occurrence | **Not implemented** — data stored only |
+| Posting result notifications | **Not called** — service method exists |
+| Daily summary notification | **Not used** — channel created only |
+| NetworkInfo / connectivity check | **Not implemented** |
+
+### P5 — Polish, testing, platform (Scheduled 2027)
+
+| Feature | Status |
+|---------|--------|
+| Unit / widget tests | **Not implemented** — `test/` empty |
+| Lottie empty states | **Not implemented** |
+| Shimmer skeletons (all pages) | **Partial** — calendar only |
+| App icon + splash | **Not implemented** |
+| Strict zero-warning lints | **Pending** |
+| Windows `main_windows.dart` + window manager | **Not implemented** |
+| Injectable / Freezed codegen for DI & states | **Not used** — manual wiring |
+| Cloud sync, analytics, bulk ops, new platforms | **Scheduled 2027** |
+| In-app AI API (direct LLM calls) | **Scheduled 2027** — external copy/paste workflow only |
 
 ---
 
-## Known Issues Found This Session
+## Partial Features — Quick Reference
 
-`flutter analyze` shows ~50 problems across ~15 files. Summary by file:
+Features that **exist in code** but are **incomplete or unwired**:
 
-### Errors (must fix)
-
-1. **`lib/core/database/app_database.dart:571`** — `usageCount` nullable access inside `recordUsage` batch. `old.usageCount ?? 0` should already work but analyzer disagrees; need guard.
-
-2. **`lib/features/comment_templates/presentation/pages/comments_page.dart:185-220`** — Method body has stray/duplicated content around `_showEditComment`. Lines 185-199 look like they belong to a different (lost) function call; lines 213+ redeclare `_showEditComment`. Needs cleanup.
-
-3. **`lib/features/hashtags/data/models/hashtag_model.dart`** — Extension tries to access fields of `HashtagSuggestionRow` which is a typedef on generated Drift class. The generated `app_database.g.dart` doesn't exist (never generated), so all references to `HashtagSuggestionRow` (typedef) fail.
-
-4. **`lib/features/hashtags/data/repositories/hashtag_repository_impl.dart`** — Uses `HashtagSuggestionRow` as a type. Will resolve once `app_database.g.dart` is regenerated.
-
-5. **`lib/features/posts/presentation/pages/calendar_page.dart:244`** — Calls `reminder.repeat.icon` and `.color` but `ReminderRepeat` enum has no such getters.
-
-6. **`lib/features/social_auth/data/services/oauth_service.dart`** — Multiple issues:
-   - References `ServiceConfiguration` (should be `AuthorizationServiceConfiguration` from flutter_appauth).
-   - `r.accessTokenExpirationTime` is not a field on `TokenResponse` (it's `.accessTokenExpirationDateTime` or computed differently).
-   - References `AppEndpoints` (not `ApiEndpoints`).
-
-7. **`lib/features/social_auth/data/deep_link_handler.dart:45`** — `subscription.onCancel` not defined on `StreamSubscription`. Should use `subscription.cancel()` directly or remove callback.
-
-8. **`lib/injection_container.dart:75`** — References `HashtagRepositoryImpl` but no such symbol (constructor not defined or import missing).
-
-### Warnings / Info (nice to fix)
-
-- `lib/core/services/clipboard_service.dart:12` — `prefer_const_constructors`
-- `lib/core/usecases/usecase.dart:5,9` — type parameter `Type` shadows `dart:core` type
-- `lib/features/comment_templates/presentation/widgets/comment_search_delegate.dart:82,84` — `use_build_context_synchronously`
-- `lib/features/posts/presentation/pages/create_edit_post_page.dart` — same async-gap warnings
-- `lib/features/social_auth/data/deep_link_handler.dart:51,52` — unnecessary cast
-- `lib/features/social_auth/data/services/oauth_service.dart:27` — unused `_redirectScheme`
-- `lib/features/social_auth/data/services/oauth_service.dart:96,129` — unnecessary null check
-
-### Root Cause: Missing Generated File
-
-`lib/core/database/app_database.g.dart` does not exist. This is the largest blocker — without it, every Drift `_*Mixin`, every Drift table Data class (`CommentCategoriesTableData`, etc.), and the typedef aliases all fail to resolve.
+```
+Navigation     → /logs orphaned, notification deep links missing
+Settings       → 5 toggles saved, most not read by app logic
+Posts          → duplicate, attachments, pull-refresh, default platforms, reminder offer
+Posting Log    → global page + per-post route not linked in UI
+Reminders      → create-from-post prefill broken
+Social Auth    → connect flow partial; no API posting pipeline
+Clipboard      → posts/logs/hashtags copy missing; search delegate cleanup
+Comments       → swipe delete without undo; no category reorder
+Dashboard      → global SearchDelegate not implemented (comment search only)
+```
 
 ---
 
-## Plan for Current Session
+## Known Pitfalls (avoid regressions)
 
-Priority order:
-
-1. **Run build_runner** to generate `app_database.g.dart` and any other generated files. This alone should fix ~10 errors (all hashtag errors + drift-related).
-2. **Fix `comments_page.dart`** — clean up the `_showEditComment` broken block.
-3. **Fix `app_database.dart:571`** — guard nullable usageCount.
-4. **Fix `calendar_page.dart:244`** — use `repeat.displayName` or remove the call.
-5. **Fix `oauth_service.dart`** — correct API names (`AuthorizationServiceConfiguration`, `accessTokenExpirationDateTime?`, etc.).
-6. **Fix `deep_link_handler.dart:45`** — remove invalid `onCancel`.
-7. **Fix `injection_container.dart:75`** — add missing import or fix class name.
-8. Re-run `flutter analyze` until zero errors.
-
-**Exit criteria for this session:**
-- `flutter analyze` shows zero errors
-- `flutter pub run build_runner build` succeeds
-- App launches (verify with `flutter build apk --debug` if time permits)
+| Issue | Safe approach |
+|-------|---------------|
+| AI Writer platform crash | Use `PromptConfig.normalizePlatform()` — values: `LinkedIn`, `X`, `Facebook` only |
+| Cross-drive build fail | Set `$env:PUB_CACHE = "I:\.pub-cache"`; `kotlin.incremental=false` in `gradle.properties` |
+| Drift changes | Bump `AppConstants.dbVersion`, add migration, run build_runner |
+| Enum in SQLite | Store `SocialPlatform.name` / `PostStatus.name` — never `displayName` |
 
 ---
 
-## Deferred (Not This Session)
+## Recently Fixed (2026-06-26 session)
 
-- Wiring WorkManager into `main.dart` (Phase 6 partial)
-- Implementing actual `PostRemoteDataSource` API calls (Twitter/LinkedIn/Facebook)
-- Adding tests
-- Polishing dashboard, statistics aggregation
-- Lottie animations, shimmer skeletons, theme polish
+- Cross-drive Kotlin/Gradle build (`PUB_CACHE` on `I:`)
+- Dashboard `StatCard` layout overflow
+- AI Prompt Studio dropdown overflow
+- AI Writer crash — `Twitter / X` vs dropdown values (`normalizePlatform` + cubit sanitization)
+- `app_database.g.dart` generated; schema v2 hashtags migration
+- App runs cleanly on device — no Dart crashes or UI overflows in latest log pass
 
 ---
 
-## Key Files Reference
+## Remaining Tech Debt (non-blocking)
 
-- Architecture spec: `CLAUDE (1).md` at `I:\Posts\CLAUDE (1).md`
-- Project root: `I:\Posts\socialbox`
-- DI root: `lib/injection_container.dart`
-- Routes: `lib/app/router/app_router.dart`
-- DB root: `lib/core/database/app_database.dart`
-- Generated file (missing): `lib/core/database/app_database.g.dart`
+- `OnBackInvokedCallback` not enabled in manifest (Android 13+ back gesture warning)
+- Impeller/Vulkan GPU warnings on some devices (`EnableImpeller=false` in manifest may need full rebuild)
+- `comment_search_delegate.dart` — double clipboard write + DI bypass
+- `oauth_service.dart` — verify against current `flutter_appauth` types if auth build fails
+- ~19 analyzer info-level lints (const, async context gaps)
+
+---
+
+## Documentation Map
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Full architecture spec |
+| `features.md` | Complete feature inventory + scorecard |
+| `quickref.md` | One-page cheat sheet |
+| `schema.md` | Drift tables & migrations |
+| `api.md` | OAuth & social API endpoints |
+| `keys.md` | Storage keys & redirect URIs |
+| `agents.md` | Agent workflow & build commands |
+| `STATUS.md` | This file — session state + gaps |
+
+---
+
+## Suggested Next Implementation Order
+
+1. Copy post content + copy log URL (clipboard — small, high impact)
+2. Wire settings toggles (`defaultPlatforms`, notifications lead time)
+3. Link `/logs` from settings or restore nav tab
+4. Fix reminder prefill from create-post flow
+5. Wire notification tap → `GoRouter` deep link
+6. OAuth fixes + `PostRemoteDataSource` stub (Phase 6 foundation)
+7. WorkManager + scheduled posting (2027 milestone)
+
+---
+
+*For implemented features and 2027 roadmap detail, see `features.md`.*

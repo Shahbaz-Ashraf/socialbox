@@ -121,7 +121,7 @@ class _StatGrid extends StatelessWidget {
       crossAxisCount: cols,
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
-      childAspectRatio: 1.4,
+      childAspectRatio: 1.2,
       children: [
         StatCard(
           label: 'Total Posts',

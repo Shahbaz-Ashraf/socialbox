@@ -1,9 +1,44 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../data/constants/default_post_writing_prompt.dart';
 import '../../data/datasources/prompt_datasource.dart';
 import '../../domain/entities/prompt_config.dart';
 import '../../domain/services/prompt_builder.dart';
+
+PromptConfig _sanitizeConfig(PromptConfig config) {
+  var postGoal = config.postGoal;
+  if (!kPostGoals.contains(postGoal)) {
+    if (postGoal.contains('Maximize Comments') &&
+        postGoal.contains('Thought Leadership')) {
+      postGoal = 'Maximize Comments + Thought Leadership';
+    } else {
+      postGoal = kPostGoals.first;
+    }
+  }
+
+  final contentMode = config.contentMode.isEmpty
+      ? ''
+      : (kContentModes.contains(config.contentMode)
+          ? config.contentMode
+          : kContentModes.first);
+
+  final contentPillar = config.contentPillar.isEmpty
+      ? ''
+      : (kContentPillars.contains(config.contentPillar)
+          ? config.contentPillar
+          : '');
+
+  return config.copyWith(
+    platform: PromptConfig.normalizePlatform(config.platform),
+    brandArchetype: kBrandArchetypes.contains(config.brandArchetype)
+        ? config.brandArchetype
+        : kBrandArchetypes.first,
+    postGoal: postGoal,
+    contentMode: contentMode,
+    contentPillar: contentPillar,
+  );
+}
 
 class AiPromptState {
   const AiPromptState({
@@ -44,17 +79,24 @@ class AiPromptCubit extends Cubit<AiPromptState> {
   AiPromptCubit(PromptDataSource ds, {PromptConfig? initialConfig})
       : _ds = ds,
         super(AiPromptState(
-          config: initialConfig ?? ds.loadLastConfig(),
+          config: _sanitizeConfig(initialConfig ?? ds.loadLastConfig()),
           template: ds.loadTemplate(),
-          presets: ds.loadPresets(),
+          presets: ds.loadPresets()
+              .map((p) => PromptPreset(
+                    id: p.id,
+                    name: p.name,
+                    config: _sanitizeConfig(p.config),
+                  ))
+              .toList(),
         ));
 
   final PromptDataSource _ds;
   final PromptBuilder _builder = const PromptBuilder();
 
   void updateConfig(PromptConfig config) {
-    emit(state.copyWith(config: config));
-    _ds.saveLastConfig(config);
+    final safe = _sanitizeConfig(config);
+    emit(state.copyWith(config: safe));
+    _ds.saveLastConfig(safe);
   }
 
   void updateField({
@@ -88,7 +130,7 @@ class AiPromptCubit extends Cubit<AiPromptState> {
   }
 
   void loadPreset(PromptPreset preset) {
-    updateConfig(preset.config);
+    updateConfig(_sanitizeConfig(preset.config));
   }
 
   Future<void> savePreset(String name) async {

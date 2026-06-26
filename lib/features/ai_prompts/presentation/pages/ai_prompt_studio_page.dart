@@ -12,6 +12,42 @@ import '../../domain/entities/prompt_config.dart';
 import '../cubit/ai_prompt_cubit.dart';
 import '../widgets/paste_ai_response_sheet.dart';
 
+List<DropdownMenuItem<String>> _dropdownItems(List<String> values) => values
+    .map(
+      (v) => DropdownMenuItem(
+        value: v,
+        child: Text(v, maxLines: 2, overflow: TextOverflow.ellipsis),
+      ),
+    )
+    .toList();
+
+List<Widget> _selectedDropdownLabels(List<String> values) => values
+    .map(
+      (v) => Align(
+        alignment: Alignment.centerLeft,
+        child: Text(v, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
+    )
+    .toList();
+
+String _dropdownValue(
+  String? value,
+  List<String> options, {
+  String? fallback,
+}) {
+  if (value != null && value.isNotEmpty && options.contains(value)) {
+    return value;
+  }
+  return fallback ?? options.first;
+}
+
+String? _optionalDropdownValue(String? value, List<String> options) {
+  if (value != null && value.isNotEmpty && options.contains(value)) {
+    return value;
+  }
+  return null;
+}
+
 class AiPromptStudioPage extends StatelessWidget {
   const AiPromptStudioPage({super.key, this.initialConfig});
 
@@ -431,14 +467,15 @@ class _ConfigTab extends StatelessWidget {
           title: 'Platform & Audience',
         ),
         DropdownButtonFormField<String>(
-          value: c.platform,
+          value: _dropdownValue(c.platform, PromptConfig.aiPlatforms),
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Platform',
             border: OutlineInputBorder(),
           ),
-          items: const ['LinkedIn', 'X', 'Facebook']
-              .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-              .toList(),
+          items: _dropdownItems(PromptConfig.aiPlatforms),
+          selectedItemBuilder: (context) =>
+              _selectedDropdownLabels(PromptConfig.aiPlatforms),
           onChanged: (v) {
             if (v != null) cubit.updateField(platform: v);
           },
@@ -448,13 +485,14 @@ class _ConfigTab extends StatelessWidget {
           value: kTargetAudiences.contains(c.targetAudience)
               ? c.targetAudience
               : null,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Target Audience (quick pick)',
             border: OutlineInputBorder(),
           ),
-          items: kTargetAudiences
-              .map((a) => DropdownMenuItem(value: a, child: Text(a)))
-              .toList(),
+          items: _dropdownItems(kTargetAudiences),
+          selectedItemBuilder: (context) =>
+              _selectedDropdownLabels(kTargetAudiences),
           onChanged: (v) {
             if (v != null) {
               audienceCtrl.text = v;
@@ -478,58 +516,60 @@ class _ConfigTab extends StatelessWidget {
           title: 'Voice & Style',
         ),
         DropdownButtonFormField<String>(
-          value: kBrandArchetypes.contains(c.brandArchetype)
-              ? c.brandArchetype
-              : kBrandArchetypes.first,
+          value: _dropdownValue(c.brandArchetype, kBrandArchetypes),
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Brand Archetype',
             border: OutlineInputBorder(),
           ),
-          items: kBrandArchetypes
-              .map((a) => DropdownMenuItem(value: a, child: Text(a)))
-              .toList(),
+          items: _dropdownItems(kBrandArchetypes),
+          selectedItemBuilder: (context) =>
+              _selectedDropdownLabels(kBrandArchetypes),
           onChanged: (v) {
             if (v != null) cubit.updateField(brandArchetype: v);
           },
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: kPostGoals.contains(c.postGoal) ? c.postGoal : kPostGoals.first,
+          value: _dropdownValue(c.postGoal, kPostGoals),
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Post Goal',
             border: OutlineInputBorder(),
           ),
-          items: kPostGoals
-              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-              .toList(),
+          items: _dropdownItems(kPostGoals),
+          selectedItemBuilder: (context) => _selectedDropdownLabels(kPostGoals),
           onChanged: (v) {
             if (v != null) cubit.updateField(postGoal: v);
           },
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: c.contentMode.isEmpty ? kContentModes.first : c.contentMode,
+          value: _dropdownValue(
+            c.contentMode.isEmpty ? kContentModes.first : c.contentMode,
+            kContentModes,
+          ),
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Content Mode',
             border: OutlineInputBorder(),
           ),
-          items: kContentModes
-              .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-              .toList(),
+          items: _dropdownItems(kContentModes),
+          selectedItemBuilder: (context) => _selectedDropdownLabels(kContentModes),
           onChanged: (v) {
             if (v != null) cubit.updateField(contentMode: v);
           },
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: c.contentPillar.isEmpty ? null : c.contentPillar,
+          value: _optionalDropdownValue(c.contentPillar, kContentPillars),
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Content Pillar (optional)',
             border: OutlineInputBorder(),
           ),
-          items: kContentPillars
-              .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-              .toList(),
+          items: _dropdownItems(kContentPillars),
+          selectedItemBuilder: (context) => _selectedDropdownLabels(kContentPillars),
           onChanged: (v) => cubit.updateField(contentPillar: v ?? ''),
         ),
         const SizedBox(height: 20),
@@ -613,7 +653,8 @@ class _TemplateTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Row(
             children: [
-              OutlinedButton.icon(
+              Expanded(
+                child: OutlinedButton.icon(
                 icon: const Icon(Icons.restore_rounded, size: 18),
                 label: const Text('Reset Default'),
                 onPressed: () async {
@@ -637,9 +678,11 @@ class _TemplateTab extends StatelessWidget {
                   );
                   if (yes == true) await cubit.resetTemplate();
                 },
+                ),
               ),
               const SizedBox(width: 8),
-              FilledButton.icon(
+              Expanded(
+                child: FilledButton.icon(
                 icon: const Icon(Icons.save_rounded, size: 18),
                 label: const Text('Save Template'),
                 onPressed: () async {
@@ -650,6 +693,7 @@ class _TemplateTab extends StatelessWidget {
                     );
                   }
                 },
+                ),
               ),
             ],
           ),

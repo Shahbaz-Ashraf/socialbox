@@ -304,7 +304,7 @@ class _FormViewState extends State<_FormView> {
       context,
       topic: state.title.isNotEmpty ? state.title : _titleCtrl.text,
       platform: state.platforms.isNotEmpty
-          ? state.platforms.first.displayName
+          ? PromptConfig.platformFromSocial(state.platforms.first)
           : 'LinkedIn',
       onApply: (prefill) {
         cubit.loadFromAiPrefill(prefill);
