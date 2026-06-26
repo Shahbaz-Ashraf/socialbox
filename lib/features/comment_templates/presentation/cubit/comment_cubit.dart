@@ -96,6 +96,7 @@ class CommentCubit extends Cubit<CommentState> {
   void _subscribe() {
     if (_currentCategoryId == null) return;
     _sub = _watchByCategory(_currentCategoryId!).listen((comments) {
+      if (isClosed) return;
       _currentComments = comments;
       final s = state;
       emit(CommentLoaded(
@@ -159,12 +160,46 @@ class CommentCubit extends Cubit<CommentState> {
   }
 
   Future<void> copy(Comment c) async {
+    _bumpUsageCountLocally(c.id);
     await incrementUsageCount(c.id);
   }
 
   Future<void> copyWithClipboard(BuildContext context, Comment c) async {
-    await clipboard.copyText(context, c.text);
-    await copy(c);
+    try {
+      await clipboard.copyText(context, c.text);
+      await copy(c);
+    } catch (_) {
+      if (isClosed || !context.mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Could not copy comment')),
+      );
+    }
+  }
+
+  void _bumpUsageCountLocally(String commentId) {
+    final s = state;
+    if (s is! CommentLoaded) return;
+    final updated = s.comments
+        .map(
+          (c) => c.id == commentId
+              ? Comment(
+                  id: c.id,
+                  categoryId: c.categoryId,
+                  text: c.text,
+                  tags: c.tags,
+                  isFavorite: c.isFavorite,
+                  usageCount: c.usageCount + 1,
+                  createdAt: c.createdAt,
+                  updatedAt: DateTime.now(),
+                )
+              : c,
+        )
+        .toList();
+    emit(CommentLoaded(
+      comments: updated,
+      query: s.query,
+      favoritesOnly: s.favoritesOnly,
+    ));
   }
 
   Future<bool> restoreDeleted({

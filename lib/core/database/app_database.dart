@@ -194,8 +194,7 @@ class CommentDao extends DatabaseAccessor<AppDatabase> with _$CommentDaoMixin {
             ..orderBy([
               (t) => OrderingTerm(
                   expression: t.isFavorite, mode: OrderingMode.desc),
-              (t) => OrderingTerm(
-                  expression: t.usageCount, mode: OrderingMode.desc),
+              (t) => OrderingTerm(expression: t.createdAt),
             ]))
           .watch();
 

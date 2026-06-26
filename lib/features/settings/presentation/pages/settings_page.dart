@@ -5,21 +5,18 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/platform_utils.dart';
-import '../../../../injection_container.dart';
 import '../../domain/entities/app_settings.dart';
-import '../../domain/entities/app_theme_mode.dart';
 import '../cubit/settings_cubit.dart';
+import '../widgets/theme_mode_picker.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<SettingsCubit>(),
-      child: const _SettingsView(),
-    );
+    return const _SettingsView();
   }
 }
 
@@ -35,27 +32,11 @@ class _SettingsView extends StatelessWidget {
           return ListView(
             children: [
               const _SectionTitle('Appearance'),
-              _ThemeModeTile(
-                label: 'System default',
-                icon: Icons.brightness_auto_rounded,
-                value: AppThemeMode.system,
+              ThemeModePicker(
                 current: settings.themeMode,
-                onSelect: (v) => cubit.update(settings.copyWith(themeMode: v)),
+                onChanged: (v) => cubit.update(settings.copyWith(themeMode: v)),
               ),
-              _ThemeModeTile(
-                label: 'Light',
-                icon: Icons.light_mode_rounded,
-                value: AppThemeMode.light,
-                current: settings.themeMode,
-                onSelect: (v) => cubit.update(settings.copyWith(themeMode: v)),
-              ),
-              _ThemeModeTile(
-                label: 'Dark',
-                icon: Icons.dark_mode_rounded,
-                value: AppThemeMode.dark,
-                current: settings.themeMode,
-                onSelect: (v) => cubit.update(settings.copyWith(themeMode: v)),
-              ),
+              const SizedBox(height: 4),
               const Divider(),
               const _SectionTitle('Defaults'),
               const _DefaultPlatformsTile(),
@@ -278,51 +259,12 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(text.toUpperCase(),
-          style: TextStyle(
-            fontSize: 11,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w800,
-            color: Theme.of(context).colorScheme.primary,
-          )),
-    );
-  }
-}
-
-class _ThemeModeTile extends StatelessWidget {
-  const _ThemeModeTile({
-    required this.label,
-    required this.icon,
-    required this.value,
-    required this.current,
-    required this.onSelect,
-  });
-
-  final String label;
-  final IconData icon;
-  final AppThemeMode value;
-  final AppThemeMode current;
-  final ValueChanged<AppThemeMode> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = value == current;
-    return ListTile(
-      leading: Icon(icon,
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).hintColor),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-        ),
+      child: Text(
+        text.toUpperCase(),
+        style: AppTextStyles.sectionHeader(context),
       ),
-      trailing: isSelected
-          ? Icon(Icons.check_circle_rounded,
-              color: Theme.of(context).colorScheme.primary)
-          : null,
-      onTap: () => onSelect(value),
     );
   }
 }
+
+

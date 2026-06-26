@@ -83,7 +83,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<UpdateSettings>(() => UpdateSettings(getIt()));
   getIt.registerFactory<ExportCommentsCsv>(
       () => ExportCommentsCsv(getIt<CommentRepository>()));
-  getIt.registerFactory<SettingsCubit>(() => SettingsCubit(
+  getIt.registerLazySingleton<SettingsCubit>(() => SettingsCubit(
         getSettings: getIt(),
         updateSettings: getIt(),
         exportCommentsCsv: getIt(),

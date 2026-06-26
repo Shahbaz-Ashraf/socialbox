@@ -3,24 +3,39 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_decorations.dart';
+import '../../../../app/theme/app_text_styles.dart';
+import '../../../../app/widgets/theme_toggle_button.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../injection_container.dart';
+import '../../../ai_prompts/presentation/cubit/ai_prompt_cubit.dart';
+import '../../../ai_prompts/presentation/widgets/dashboard_ai_writer_card.dart';
+import '../../../posting_log/domain/entities/posting_log.dart';
 import '../../../posts/domain/entities/social_post.dart';
-import '../../../../core/widgets/log_tile.dart';
 import '../../../reminders/domain/entities/reminder.dart';
 import '../../domain/entities/dashboard_stats.dart';
-import '../../../ai_prompts/presentation/widgets/dashboard_ai_writer_card.dart';
 import '../cubit/dashboard_cubit.dart';
-import '../widgets/stat_card.dart';
+import '../widgets/dashboard_activity_item.dart';
+import '../widgets/dashboard_list_item.dart';
+import '../widgets/dashboard_section.dart';
+import '../widgets/dashboard_stats_row.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<DashboardCubit>()..load()..startAutoRefresh(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<DashboardCubit>()..load()..startAutoRefresh(),
+        ),
+        BlocProvider(
+          create: (_) => getIt<AiPromptCubit>(),
+        ),
+      ],
       child: const _DashboardView(),
     );
   }
@@ -32,20 +47,6 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SocialBox'),
-        actions: [
-          IconButton(
-            tooltip: 'AI Post Writer',
-            icon: const Icon(Icons.psychology_rounded),
-            onPressed: () => context.pushNamed(RouteNames.aiPromptStudio),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => context.read<DashboardCubit>().load(),
-          ),
-        ],
-      ),
       body: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
           if (state is DashboardInitial || state is DashboardLoading) {
@@ -62,8 +63,7 @@ class _DashboardView extends StatelessWidget {
                   Text(state.message),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () =>
-                        context.read<DashboardCubit>().load(),
+                    onPressed: () => context.read<DashboardCubit>().load(),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -73,25 +73,51 @@ class _DashboardView extends StatelessWidget {
           if (state is DashboardLoaded) {
             return RefreshIndicator(
               onRefresh: () => context.read<DashboardCubit>().load(),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  const DashboardAiWriterCard(),
-                  const SizedBox(height: 12),
-                  _QuickActions(),
-                  const SizedBox(height: 16),
-                  _StatGrid(stats: state.stats),
-                  const SizedBox(height: 20),
-                  _UpcomingPosts(posts: state.stats.upcomingPosts),
-                  const SizedBox(height: 20),
-                  _UpcomingReminders(reminders: state.stats.upcomingReminders),
-                  const SizedBox(height: 20),
-                  _RecentActivity(
-                    logs: state.stats.recentActivity,
-                    onCopyUrl: context.read<DashboardCubit>().copyLogUrl,
+              edgeOffset: 140,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _DashboardHeroWithStats(
+                      isRefreshing: state.isRefreshing,
+                      stats: state.stats,
+                      onRefresh: () => context.read<DashboardCubit>().load(),
+                      onOpenStudio: () {
+                        final cubit = context.read<AiPromptCubit>();
+                        cubit.flushPersist();
+                        context.pushNamed(
+                          RouteNames.aiPromptStudio,
+                          extra: cubit,
+                        );
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  _PlatformBreakdown(counts: state.stats.platformCounts),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 100),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const _QuickActions(),
+                        const SizedBox(height: 16),
+                        const DashboardAiWriterCard(),
+                        const SizedBox(height: 16),
+                        _UpcomingPosts(posts: state.stats.upcomingPosts),
+                        const SizedBox(height: 16),
+                        _UpcomingReminders(
+                          reminders: state.stats.upcomingReminders,
+                        ),
+                        const SizedBox(height: 16),
+                        _RecentActivity(
+                          logs: state.stats.recentActivity,
+                          onCopyUrl: context.read<DashboardCubit>().copyLogUrl,
+                        ),
+                        const SizedBox(height: 16),
+                        _PlatformBreakdown(
+                          counts: state.stats.platformCounts,
+                        ),
+                        const SizedBox(height: 24),
+                      ]),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -103,68 +129,34 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
-class _StatGrid extends StatelessWidget {
-  const _StatGrid({required this.stats});
+class _DashboardHeroWithStats extends StatelessWidget {
+  const _DashboardHeroWithStats({
+    required this.isRefreshing,
+    required this.stats,
+    required this.onRefresh,
+    required this.onOpenStudio,
+  });
+
+  final bool isRefreshing;
   final DashboardStats stats;
+  final VoidCallback onRefresh;
+  final VoidCallback onOpenStudio;
+
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final cols = width > 600 ? 4 : 2;
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: cols,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.2,
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        StatCard(
-          label: 'Total Posts',
-          value: '${stats.totalPosts}',
-          icon: Icons.article_rounded,
-          color: const Color(0xFF6750A4),
+        _DashboardHero(
+          isRefreshing: isRefreshing,
+          onRefresh: onRefresh,
+          onOpenStudio: onOpenStudio,
         ),
-        StatCard(
-          label: 'Scheduled',
-          value: '${stats.scheduledPosts}',
-          icon: Icons.schedule_rounded,
-          color: const Color(0xFF2196F3),
-        ),
-        StatCard(
-          label: 'Posted',
-          value: '${stats.postedPosts}',
-          icon: Icons.check_circle_rounded,
-          color: const Color(0xFF4CAF50),
-        ),
-        StatCard(
-          label: 'Drafts',
-          value: '${stats.draftPosts}',
-          icon: Icons.edit_note_rounded,
-          color: const Color(0xFF607D8B),
-        ),
-        StatCard(
-          label: 'Comments',
-          value: '${stats.totalComments}',
-          icon: Icons.chat_bubble_rounded,
-          color: const Color(0xFFFF9800),
-        ),
-        StatCard(
-          label: 'Categories',
-          value: '${stats.totalCommentCategories}',
-          icon: Icons.folder_rounded,
-          color: const Color(0xFF9C27B0),
-        ),
-        StatCard(
-          label: 'Copies',
-          value: '${stats.totalCopies}',
-          icon: Icons.content_copy_rounded,
-          color: const Color(0xFFE91E63),
-        ),
-        StatCard(
-          label: 'Log Entries',
-          value: '${stats.totalLogs}',
-          icon: Icons.history_rounded,
-          color: const Color(0xFF00BCD4),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: -48,
+          child: DashboardStatsRow(stats: stats),
         ),
       ],
     );
@@ -174,29 +166,32 @@ class _StatGrid extends StatelessWidget {
 class _UpcomingPosts extends StatelessWidget {
   const _UpcomingPosts({required this.posts});
   final List<SocialPost> posts;
+
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return DashboardSection(
       title: 'Upcoming Posts',
       icon: Icons.schedule_rounded,
       child: posts.isEmpty
-          ? const _EmptyHint('No scheduled posts yet.')
+          ? DashboardEmptyState(
+              message: 'No scheduled posts yet.',
+              actionLabel: 'Create a post',
+              onAction: () => context.pushNamed(RouteNames.createPost),
+            )
           : Column(
               children: posts
-                  .map((p) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.schedule_rounded),
-                        title: Text(p.title,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Text(
-                          AppDateUtils.formatRelative(p.scheduledAt!),
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => context.pushNamed(
-                          RouteNames.postDetail,
-                          pathParameters: {'id': p.id},
-                        ),
-                      ))
+                  .map(
+                    (p) => DashboardListItem(
+                      icon: Icons.schedule_outlined,
+                      iconColor: AppColors.statScheduled,
+                      title: p.title,
+                      subtitle: AppDateUtils.formatRelative(p.scheduledAt!),
+                      onTap: () => context.pushNamed(
+                        RouteNames.postDetail,
+                        pathParameters: {'id': p.id},
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
     );
@@ -206,23 +201,29 @@ class _UpcomingPosts extends StatelessWidget {
 class _UpcomingReminders extends StatelessWidget {
   const _UpcomingReminders({required this.reminders});
   final List<Reminder> reminders;
+
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return DashboardSection(
       title: 'Upcoming Reminders',
       icon: Icons.notifications_active_rounded,
       child: reminders.isEmpty
-          ? const _EmptyHint('No upcoming reminders.')
+          ? DashboardEmptyState(
+              message: 'No upcoming reminders.',
+              actionLabel: 'Manage reminders',
+              onAction: () => context.pushNamed(RouteNames.reminders),
+            )
           : Column(
               children: reminders
-                  .map((r) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(r.repeat.icon, color: r.repeat.color),
-                        title: Text(r.title,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle:
-                            Text(AppDateUtils.formatRelative(r.scheduledAt)),
-                      ))
+                  .map(
+                    (r) => DashboardListItem(
+                      icon: r.repeat.icon,
+                      iconColor: r.repeat.color,
+                      title: r.title,
+                      subtitle: AppDateUtils.formatRelative(r.scheduledAt),
+                      showChevron: false,
+                    ),
+                  )
                   .toList(),
             ),
     );
@@ -231,19 +232,33 @@ class _UpcomingReminders extends StatelessWidget {
 
 class _RecentActivity extends StatelessWidget {
   const _RecentActivity({required this.logs, required this.onCopyUrl});
-  final List logs;
+  final List<PostingLog> logs;
   final void Function(BuildContext context, String url) onCopyUrl;
+
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return DashboardSection(
       title: 'Recent Activity',
       icon: Icons.history_rounded,
+      trailing: logs.isNotEmpty
+          ? TextButton(
+              onPressed: () => context.go('/logs'),
+              child: const Text('View all'),
+            )
+          : null,
       child: logs.isEmpty
-          ? const _EmptyHint('No recent activity.')
+          ? DashboardEmptyState(
+              message: 'No recent activity.',
+              actionLabel: 'View all logs',
+              onAction: () => context.go('/logs'),
+            )
           : Column(
               children: logs
-                  .map<Widget>(
-                    (l) => LogTile(log: l, onCopyUrl: onCopyUrl),
+                  .map(
+                    (l) => DashboardActivityItem(
+                      log: l,
+                      onCopyUrl: onCopyUrl,
+                    ),
                   )
                   .toList(),
             ),
@@ -254,43 +269,64 @@ class _RecentActivity extends StatelessWidget {
 class _PlatformBreakdown extends StatelessWidget {
   const _PlatformBreakdown({required this.counts});
   final Map<String, int> counts;
+
   @override
   Widget build(BuildContext context) {
     if (counts.isEmpty) return const SizedBox.shrink();
     final total = counts.values.fold<int>(0, (s, v) => s + v);
-    return _Section(
+    final theme = Theme.of(context);
+
+    return DashboardSection(
       title: 'Platform Mix',
-      icon: Icons.donut_large_rounded,
+      icon: Icons.pie_chart_outline_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: counts.entries.map((e) {
           final plat = SocialPlatformX.fromName(e.key) ?? SocialPlatform.twitter;
           final pct = total == 0 ? 0.0 : e.value / total;
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.only(bottom: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(plat.icon, color: plat.color, size: 16),
-                    const SizedBox(width: 6),
-                    Text(plat.displayName,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w600)),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: AppDecorations.iconBadge(plat.color),
+                      child: Icon(plat.icon, color: plat.color, size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      plat.displayName,
+                      style: theme.textTheme.titleMedium?.copyWith(fontSize: 13),
+                    ),
                     const Spacer(),
-                    Text('${e.value} (${(pct * 100).toStringAsFixed(0)}%)',
-                        style: const TextStyle(fontSize: 12)),
+                    Text(
+                      '${e.value}',
+                      style: AppTextStyles.subtitle.copyWith(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      ' · ${(pct * 100).toStringAsFixed(0)}%',
+                      style: AppTextStyles.caption.copyWith(
+                        color: theme.hintColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 10),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 6,
+                    borderRadius: BorderRadius.circular(8),
                     backgroundColor:
-                        Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                        theme.dividerColor.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation(plat.color),
                   ),
                 ),
@@ -303,7 +339,176 @@ class _PlatformBreakdown extends StatelessWidget {
   }
 }
 
+class _DashboardHero extends StatelessWidget {
+  const _DashboardHero({
+    required this.isRefreshing,
+    required this.onRefresh,
+    required this.onOpenStudio,
+  });
+
+  final bool isRefreshing;
+  final VoidCallback onRefresh;
+  final VoidCallback onOpenStudio;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>() ??
+        AppThemeTokens.light();
+    final topPad = MediaQuery.paddingOf(context).top;
+    final greeting = _greetingForTime();
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: tokens.heroGradient,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -30,
+            right: -20,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: AppDecorations.heroOrb(Colors.white, opacity: 0.08),
+            ),
+          ),
+          Positioned(
+            bottom: 60,
+            left: -40,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: AppDecorations.heroOrb(
+                AppColors.secondaryLight,
+                opacity: 0.15,
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 72),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            greeting,
+                            style: AppTextStyles.heroGreeting(context),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'SocialBox',
+                            style: AppTextStyles.heroTitle(context),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Your content command center',
+                            style: AppTextStyles.onGradient(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _HeroIconButton(
+                      tooltip: 'Toggle theme',
+                      decoration: AppDecorations.glassButton(),
+                      child: const ThemeToggleButton(iconColor: Colors.white),
+                    ),
+                    if (isRefreshing)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 6),
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      _HeroIconButton(
+                        tooltip: 'Refresh',
+                        icon: Icons.refresh_rounded,
+                        onPressed: onRefresh,
+                      ),
+                    _HeroIconButton(
+                      tooltip: 'AI Writer',
+                      icon: Icons.auto_awesome_rounded,
+                      onPressed: onOpenStudio,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _greetingForTime() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+}
+
+class _HeroIconButton extends StatelessWidget {
+  const _HeroIconButton({
+    required this.tooltip,
+    this.icon,
+    this.onPressed,
+    this.child,
+    this.decoration,
+  });
+
+  final String tooltip;
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final Widget? child;
+  final BoxDecoration? decoration;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(12),
+            child: Ink(
+              width: 40,
+              height: 40,
+              decoration: decoration ?? AppDecorations.glassButton(),
+              child: child ??
+                  Icon(icon, color: Colors.white, size: 20),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -313,17 +518,17 @@ class _QuickActions extends StatelessWidget {
             icon: Icons.add_circle_outline_rounded,
             label: 'New Post',
             subtitle: 'Create manually',
-            color: const Color(0xFF2196F3),
+            accentColor: AppColors.statScheduled,
             onTap: () => context.pushNamed(RouteNames.createPost),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
           child: _ActionCard(
             icon: Icons.calendar_today_rounded,
             label: 'Calendar',
             subtitle: 'Schedule view',
-            color: const Color(0xFF6750A4),
+            accentColor: AppColors.accentViolet,
             onTap: () => context.go('/calendar'),
           ),
         ),
@@ -337,98 +542,54 @@ class _ActionCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.subtitle,
-    required this.color,
+    required this.accentColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String subtitle;
-  final Color color;
+  final Color accentColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Material(
-      color: color.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(14),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 8),
-              Text(label,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                      color: color)),
-              Text(subtitle,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(context).hintColor)),
-            ],
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          decoration: AppDecorations.surfaceCard(context),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: AppDecorations.iconBadge(accentColor),
+                  child: Icon(icon, color: accentColor, size: 22),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 14),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.caption.copyWith(
+                    color: theme.hintColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
-
-  final String title;
-  final IconData icon;
-  final Widget child;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18),
-              const SizedBox(width: 6),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyHint extends StatelessWidget {
-  const _EmptyHint(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(text,
-          style:
-              TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
     );
   }
 }

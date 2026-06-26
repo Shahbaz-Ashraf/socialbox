@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../pages/main_shell.dart';
 import '../../features/ai_prompts/domain/entities/ai_post_prefill.dart';
 import '../../features/ai_prompts/domain/entities/prompt_config.dart';
+import '../../features/ai_prompts/presentation/cubit/ai_prompt_cubit.dart';
 import '../../features/ai_prompts/presentation/pages/ai_prompt_studio_page.dart';
 import '../../features/comment_templates/presentation/pages/categories_page.dart';
 import '../../features/comment_templates/presentation/pages/comments_page.dart';
@@ -35,6 +36,9 @@ final appRouter = GoRouter(
           name: RouteNames.aiPromptStudio,
           builder: (_, state) {
             final extra = state.extra;
+            if (extra is AiPromptCubit) {
+              return AiPromptStudioPage(cubit: extra);
+            }
             if (extra is PromptConfig) {
               return AiPromptStudioPage(initialConfig: extra);
             }

@@ -94,6 +94,7 @@ class CategoryCubit extends Cubit<CategoryState> {
   void _subscribe() {
     _categoriesSub?.cancel();
     _categoriesSub = repository.watchCategories().listen((cats) {
+      if (isClosed) return;
       final loaded = state is CategoryLoaded
           ? (state as CategoryLoaded)
           : CategoryLoaded(categories: cats);
@@ -106,7 +107,7 @@ class CategoryCubit extends Cubit<CategoryState> {
         if (_countSubs.containsKey(c.id)) continue;
         _countSubs[c.id] = repository
             .watchCommentsByCategory(c.id)
-            .listen((_) => _refreshCount(c.id));
+            .listen((comments) => _updateCount(c.id, comments.length));
       }
       // Clean up removed subscriptions
       _countSubs.removeWhere((id, sub) {
@@ -117,15 +118,14 @@ class CategoryCubit extends Cubit<CategoryState> {
     });
   }
 
-  Future<void> _refreshCount(String categoryId) async {
-    final r = await repository.getCommentsByCategory(categoryId);
+  void _updateCount(String categoryId, int count) {
+    if (isClosed) return;
     final cur = state;
-    if (cur is CategoryLoaded && r.isRight()) {
-      final list = r.getOrElse((_) => const <Comment>[]);
-      final newCounts = Map<String, int>.from(cur.commentCounts);
-      newCounts[categoryId] = list.length;
-      emit(cur.copyWith(commentCounts: newCounts));
-    }
+    if (cur is! CategoryLoaded) return;
+    if (cur.commentCounts[categoryId] == count) return;
+    final newCounts = Map<String, int>.from(cur.commentCounts);
+    newCounts[categoryId] = count;
+    emit(cur.copyWith(commentCounts: newCounts));
   }
 
   Future<void> load() async {

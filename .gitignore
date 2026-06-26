@@ -48,3 +48,8 @@ app.*.map.json
 *.log
 .env
 .env.*
+
+# Local tooling / agent artifacts (do not commit)
+.gradle/
+.tmp/
+terminals/

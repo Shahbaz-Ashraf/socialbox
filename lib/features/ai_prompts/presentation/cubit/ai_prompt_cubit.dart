@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -57,7 +59,8 @@ class AiPromptCubit extends Cubit<AiPromptState> {
     required SavePromptPresets savePresets,
     required ClipboardService clipboard,
     PromptConfig? initialConfig,
-  })  : _saveLastConfig = saveLastConfig,
+  })  : _repository = repository,
+        _saveLastConfig = saveLastConfig,
         _clipboard = clipboard,
         _saveTemplate = saveTemplate,
         _resetTemplate = resetTemplate,
@@ -76,17 +79,50 @@ class AiPromptCubit extends Cubit<AiPromptState> {
               .toList(),
         ));
 
+  final PromptRepository _repository;
   final SaveLastPromptConfig _saveLastConfig;
   final SavePromptTemplate _saveTemplate;
   final ResetPromptTemplate _resetTemplate;
   final SavePromptPresets _savePresets;
   final ClipboardService _clipboard;
   final PromptBuilder _builder = const PromptBuilder();
+  Timer? _persistDebounce;
+  PromptConfig? _pendingPersist;
 
   void updateConfig(PromptConfig config) {
     final safe = sanitizePromptConfig(config);
     emit(state.copyWith(config: safe));
-    _saveLastConfig(safe);
+    _schedulePersist(safe);
+  }
+
+  void _schedulePersist(PromptConfig config) {
+    _pendingPersist = config;
+    _persistDebounce?.cancel();
+    _persistDebounce = Timer(const Duration(milliseconds: 400), () {
+      final pending = _pendingPersist;
+      if (pending != null) {
+        _saveLastConfig(pending);
+        _pendingPersist = null;
+      }
+    });
+  }
+
+  /// Immediately persists any pending config (e.g. before navigation).
+  void flushPersist() => _flushPersist();
+
+  /// Reloads persisted config from the repository (e.g. after returning from studio).
+  void reloadLastConfig() {
+    final config = sanitizePromptConfig(_repository.loadLastConfig());
+    emit(state.copyWith(config: config));
+  }
+
+  void _flushPersist() {
+    _persistDebounce?.cancel();
+    final pending = _pendingPersist;
+    if (pending != null) {
+      _saveLastConfig(pending);
+      _pendingPersist = null;
+    }
   }
 
   void updateField({
@@ -159,11 +195,16 @@ class AiPromptCubit extends Cubit<AiPromptState> {
     ));
   }
 
+  String _buildPromptString() => _builder.build(
+        template: state.template,
+        config: state.config,
+      );
+
+  /// Builds prompt for clipboard/copy flows without triggering preview UI.
+  String buildPromptForCopy() => _buildPromptString();
+
   String buildPrompt() {
-    final built = _builder.build(
-      template: state.template,
-      config: state.config,
-    );
+    final built = _buildPromptString();
     emit(state.copyWith(builtPrompt: built, showPreview: true));
     return built;
   }
@@ -172,4 +213,10 @@ class AiPromptCubit extends Cubit<AiPromptState> {
 
   Future<void> copyPrompt(BuildContext context, String prompt) =>
       _clipboard.copyText(context, prompt);
+
+  @override
+  Future<void> close() {
+    _flushPersist();
+    return super.close();
+  }
 }

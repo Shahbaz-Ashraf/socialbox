@@ -5,11 +5,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../injection_container.dart';
-import '../../data/constants/default_post_writing_prompt.dart';
 import '../../domain/constants/prompt_options.dart';
 import '../../domain/entities/prompt_config.dart';
 import '../cubit/ai_prompt_cubit.dart';
+import '../widgets/ai_app_picker_sheet.dart';
+import '../widgets/ai_platform_chip_row.dart';
 import '../widgets/paste_ai_response_sheet.dart';
+import '../widgets/preset_load_helper.dart';
 
 List<DropdownMenuItem<String>> _dropdownItems(List<String> values) => values
     .map(
@@ -48,19 +50,26 @@ String? _optionalDropdownValue(String? value, List<String> options) {
 }
 
 class AiPromptStudioPage extends StatelessWidget {
-  const AiPromptStudioPage({super.key, this.initialConfig});
+  const AiPromptStudioPage({super.key, this.initialConfig, this.cubit});
 
   final PromptConfig? initialConfig;
+  final AiPromptCubit? cubit;
 
   @override
   Widget build(BuildContext context) {
+    if (cubit != null) {
+      return BlocProvider.value(
+        value: cubit!,
+        child: const _StudioView(),
+      );
+    }
     return BlocProvider(
       create: (_) {
-        final cubit = getIt<AiPromptCubit>();
+        final newCubit = getIt<AiPromptCubit>();
         if (initialConfig != null) {
-          cubit.updateConfig(initialConfig!);
+          newCubit.updateConfig(initialConfig!);
         }
-        return cubit;
+        return newCubit;
       },
       child: const _StudioView(),
     );
@@ -85,7 +94,6 @@ class _StudioViewState extends State<_StudioView>
   late final TextEditingController _emojiCtrl;
   late final TextEditingController _hashtagCtrl;
   late final TextEditingController _templateCtrl;
-  bool _synced = false;
 
   @override
   void initState() {
@@ -127,13 +135,15 @@ class _StudioViewState extends State<_StudioView>
           _showPreviewSheet(context, state.builtPrompt, cubit);
           cubit.hidePreview();
         }
-        if (!_synced) {
-          _synced = true;
-          return;
-        }
-        if (_templateCtrl.text != state.template) {
-          _templateCtrl.text = state.template;
-        }
+        final c = state.config;
+        _syncController(_topicCtrl, c.topic);
+        _syncController(_primaryKwCtrl, c.primaryKeyword);
+        _syncController(_secondaryKwCtrl, c.secondaryKeywords);
+        _syncController(_audienceCtrl, c.targetAudience);
+        _syncController(_wordLimitCtrl, c.wordLimit);
+        _syncController(_emojiCtrl, c.emojiRange);
+        _syncController(_hashtagCtrl, c.hashtagRange);
+        _syncController(_templateCtrl, state.template);
       },
       builder: (context, state) {
         final cubit = context.read<AiPromptCubit>();
@@ -225,8 +235,20 @@ class _StudioViewState extends State<_StudioView>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _AiAppShortcuts(
-                    onCopyAndOpen: (url) => _copyAndOpen(context, cubit, url),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                      label: const Text('Open in AI'),
+                      onPressed: state.config.isReady
+                          ? () => showAiAppPickerSheet(
+                                context,
+                                enabled: true,
+                                onCopyAndOpen: (url) =>
+                                    _copyAndOpen(context, cubit, url),
+                              )
+                          : null,
+                    ),
                   ),
                 ],
               ),
@@ -238,7 +260,7 @@ class _StudioViewState extends State<_StudioView>
   }
 
   Future<void> _copyPrompt(BuildContext context, AiPromptCubit cubit) async {
-    final prompt = cubit.buildPrompt();
+    final prompt = cubit.buildPromptForCopy();
     await cubit.copyPrompt(context, prompt);
     HapticFeedback.mediumImpact();
   }
@@ -248,7 +270,7 @@ class _StudioViewState extends State<_StudioView>
     AiPromptCubit cubit,
     String url,
   ) async {
-    final prompt = cubit.buildPrompt();
+    final prompt = cubit.buildPromptForCopy();
     await Clipboard.setData(ClipboardData(text: prompt));
     HapticFeedback.mediumImpact();
     final uri = Uri.parse(url);
@@ -352,6 +374,14 @@ class _StudioViewState extends State<_StudioView>
     }
   }
 
+  void _syncController(TextEditingController controller, String value) {
+    if (controller.text == value) return;
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
+
   void _showPresets(BuildContext context) {
     final cubit = context.read<AiPromptCubit>();
     showModalBottomSheet(
@@ -382,15 +412,14 @@ class _StudioViewState extends State<_StudioView>
                       Navigator.pop(context);
                     },
                   ),
-                  onTap: () {
+                  onTap: () async {
+                    final confirmed = await confirmPresetLoadIfNeeded(
+                      context,
+                      currentConfig: cubit.state.config,
+                      preset: p,
+                    );
+                    if (!confirmed || !context.mounted) return;
                     cubit.loadPreset(p);
-                    _topicCtrl.text = p.config.topic;
-                    _primaryKwCtrl.text = p.config.primaryKeyword;
-                    _secondaryKwCtrl.text = p.config.secondaryKeywords;
-                    _audienceCtrl.text = p.config.targetAudience;
-                    _wordLimitCtrl.text = p.config.wordLimit;
-                    _emojiCtrl.text = p.config.emojiRange;
-                    _hashtagCtrl.text = p.config.hashtagRange;
                     Navigator.pop(context);
                   },
                 )),
@@ -470,20 +499,18 @@ class _ConfigTab extends StatelessWidget {
           icon: Icons.public_rounded,
           title: 'Platform & Audience',
         ),
-        DropdownButtonFormField<String>(
-          key: ValueKey('platform-${c.platform}'),
-          initialValue: _dropdownValue(c.platform, PromptConfig.aiPlatforms),
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Platform',
-            border: OutlineInputBorder(),
+        Text(
+          'Platform',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).hintColor,
           ),
-          items: _dropdownItems(PromptConfig.aiPlatforms),
-          selectedItemBuilder: (context) =>
-              _selectedDropdownLabels(PromptConfig.aiPlatforms),
-          onChanged: (v) {
-            if (v != null) cubit.updateField(platform: v);
-          },
+        ),
+        const SizedBox(height: 8),
+        AiPlatformChipRow(
+          selected: c.platform,
+          onSelected: (platform) => cubit.updateField(platform: platform),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
@@ -753,39 +780,3 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _AiAppShortcuts extends StatelessWidget {
-  const _AiAppShortcuts({required this.onCopyAndOpen});
-
-  final void Function(String url) onCopyAndOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: kAiAppLinks.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (_, i) {
-          if (i == kAiAppLinks.length) {
-            return ActionChip(
-              avatar: const Icon(Icons.share_rounded, size: 16),
-              label: const Text('Share'),
-              onPressed: () {
-                final cubit = context.read<AiPromptCubit>();
-                if (!cubit.state.config.isReady) return;
-                final prompt = cubit.buildPrompt();
-                Share.share(prompt, subject: 'AI Post Writing Prompt');
-              },
-            );
-          }
-          final app = kAiAppLinks[i];
-          return ActionChip(
-            label: Text(app.name),
-            onPressed: () => onCopyAndOpen(app.url),
-          );
-        },
-      ),
-    );
-  }
-}
