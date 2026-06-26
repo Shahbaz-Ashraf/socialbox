@@ -6,6 +6,10 @@ import 'core/services/clipboard_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/secure_storage_service.dart';
 import 'features/ai_prompts/data/datasources/prompt_datasource.dart';
+import 'features/ai_prompts/data/repositories/prompt_repository_impl.dart';
+import 'features/ai_prompts/domain/repositories/prompt_repository.dart';
+import 'features/ai_prompts/domain/usecases/prompt_usecases.dart';
+import 'features/ai_prompts/presentation/cubit/ai_prompt_cubit.dart';
 import 'features/comment_templates/data/datasources/comment_local_datasource.dart';
 import 'features/comment_templates/data/repositories/comment_repository_impl.dart';
 import 'features/comment_templates/domain/repositories/comment_repository.dart';
@@ -26,12 +30,20 @@ import 'features/posts/data/repositories/post_repository_impl.dart';
 import 'features/posts/domain/repositories/post_repository.dart';
 import 'features/posts/domain/usecases/post_date_usecases.dart';
 import 'features/posts/domain/usecases/post_usecases.dart';
+import 'features/posts/presentation/bloc/post_list_bloc.dart';
+import 'features/posts/presentation/cubit/post_detail_cubit.dart';
 import 'features/reminders/data/datasources/reminder_local_datasource.dart';
 import 'features/reminders/data/repositories/reminder_repository_impl.dart';
 import 'features/reminders/domain/repositories/reminder_repository.dart';
 import 'features/reminders/domain/usecases/reminder_date_usecases.dart';
 import 'features/reminders/domain/usecases/reminder_usecases.dart';
 import 'features/settings/data/datasources/settings_datasource.dart';
+import 'features/settings/data/repositories/settings_repository_impl.dart';
+import 'features/settings/domain/repositories/settings_repository.dart';
+import 'features/settings/domain/usecases/settings_usecases.dart';
+import 'features/settings/presentation/cubit/settings_cubit.dart';
+import 'features/dashboard/domain/usecases/get_dashboard_stats.dart';
+import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'features/social_auth/data/datasources/social_auth_datasource.dart';
 import 'features/social_auth/data/deep_link_handler.dart';
 import 'features/social_auth/data/repositories/auth_repository_impl.dart';
@@ -57,8 +69,41 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<SecureStorageService>(() => SecureStorageService());
   getIt.registerLazySingleton<SettingsDataSource>(
       () => SettingsDataSource(getIt<SharedPreferences>()));
+  getIt.registerLazySingleton<SettingsRepository>(
+      () => SettingsRepositoryImpl(getIt<SettingsDataSource>()));
+  getIt.registerFactory<GetSettings>(() => GetSettings(getIt()));
+  getIt.registerFactory<UpdateSettings>(() => UpdateSettings(getIt()));
+  getIt.registerFactory<ExportCommentsCsv>(
+      () => ExportCommentsCsv(getIt<CommentRepository>()));
+  getIt.registerFactory<SettingsCubit>(() => SettingsCubit(
+        getSettings: getIt(),
+        updateSettings: getIt(),
+        exportCommentsCsv: getIt(),
+      ));
+
   getIt.registerLazySingleton<PromptDataSource>(
       () => PromptDataSource(getIt<SharedPreferences>()));
+  getIt.registerLazySingleton<PromptRepository>(
+      () => PromptRepositoryImpl(getIt<PromptDataSource>()));
+  getIt.registerFactory<LoadPromptTemplate>(() => LoadPromptTemplate(getIt()));
+  getIt.registerFactory<SavePromptTemplate>(() => SavePromptTemplate(getIt()));
+  getIt.registerFactory<ResetPromptTemplate>(() => ResetPromptTemplate(getIt()));
+  getIt.registerFactory<LoadLastPromptConfig>(
+      () => LoadLastPromptConfig(getIt()));
+  getIt.registerFactory<SaveLastPromptConfig>(
+      () => SaveLastPromptConfig(getIt()));
+  getIt.registerFactory<LoadPromptPresets>(() => LoadPromptPresets(getIt()));
+  getIt.registerFactory<SavePromptPresets>(() => SavePromptPresets(getIt()));
+  getIt.registerFactory<AiPromptCubit>(() => AiPromptCubit(
+        repository: getIt(),
+        loadLastConfig: getIt(),
+        saveLastConfig: getIt(),
+        loadTemplate: getIt(),
+        saveTemplate: getIt(),
+        resetTemplate: getIt(),
+        loadPresets: getIt(),
+        savePresets: getIt(),
+      ));
 
   // Social Auth -------------------------------------------------------
   getIt.registerLazySingleton<DeepLinkHandler>(() => DeepLinkHandler());
@@ -136,6 +181,21 @@ Future<void> configureDependencies() async {
       () => GetPostsInRange(getIt()));
   getIt.registerFactory<DuplicatePost>(() => DuplicatePost(getIt()));
 
+  getIt.registerFactoryParam<PostDetailCubit, String, void>(
+    (postId, _) => PostDetailCubit(
+      postId: postId,
+      getPostById: getIt(),
+      markPostedManually: getIt(),
+      deletePost: getIt(),
+      duplicatePost: getIt(),
+    ),
+  );
+  getIt.registerFactory<PostListBloc>(() => PostListBloc(
+        repository: getIt<PostRepository>(),
+        markPostedManually: getIt(),
+        deletePost: getIt(),
+      ));
+
   // Posting Log ------------------------------------------------------
   getIt.registerLazySingleton<LogLocalDataSource>(
       () => LogLocalDataSource(getIt<AppDatabase>()));
@@ -162,4 +222,14 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<ToggleReminder>(() => ToggleReminder(getIt()));
   getIt.registerFactory<GetRemindersInRange>(
       () => GetRemindersInRange(getIt()));
+
+  // Dashboard ---------------------------------------------------------
+  getIt.registerFactory<GetDashboardStats>(() => GetDashboardStats(
+        postRepo: getIt(),
+        commentRepo: getIt(),
+        logRepo: getIt(),
+        reminderRepo: getIt(),
+      ));
+  getIt.registerFactory<DashboardCubit>(
+      () => DashboardCubit(getStats: getIt<GetDashboardStats>()));
 }

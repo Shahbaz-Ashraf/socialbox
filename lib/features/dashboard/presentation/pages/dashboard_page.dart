@@ -10,7 +10,6 @@ import '../../../posts/domain/entities/social_post.dart';
 import '../../../posting_log/presentation/widgets/log_tile.dart';
 import '../../../reminders/domain/entities/reminder.dart';
 import '../../domain/entities/dashboard_stats.dart';
-import '../../domain/usecases/get_dashboard_stats.dart';
 import '../../../ai_prompts/presentation/widgets/dashboard_ai_writer_card.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/stat_card.dart';
@@ -21,14 +20,7 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => DashboardCubit(
-        getStats: GetDashboardStats(
-          postRepo: getIt(),
-          commentRepo: getIt(),
-          logRepo: getIt(),
-          reminderRepo: getIt(),
-        ),
-      )..load()..startAutoRefresh(),
+      create: (_) => getIt<DashboardCubit>()..load()..startAutoRefresh(),
       child: const _DashboardView(),
     );
   }

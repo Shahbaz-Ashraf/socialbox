@@ -1,44 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../data/constants/default_post_writing_prompt.dart';
-import '../../data/datasources/prompt_datasource.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/prompt_config.dart';
+import '../../domain/repositories/prompt_repository.dart';
 import '../../domain/services/prompt_builder.dart';
-
-PromptConfig _sanitizeConfig(PromptConfig config) {
-  var postGoal = config.postGoal;
-  if (!kPostGoals.contains(postGoal)) {
-    if (postGoal.contains('Maximize Comments') &&
-        postGoal.contains('Thought Leadership')) {
-      postGoal = 'Maximize Comments + Thought Leadership';
-    } else {
-      postGoal = kPostGoals.first;
-    }
-  }
-
-  final contentMode = config.contentMode.isEmpty
-      ? ''
-      : (kContentModes.contains(config.contentMode)
-          ? config.contentMode
-          : kContentModes.first);
-
-  final contentPillar = config.contentPillar.isEmpty
-      ? ''
-      : (kContentPillars.contains(config.contentPillar)
-          ? config.contentPillar
-          : '');
-
-  return config.copyWith(
-    platform: PromptConfig.normalizePlatform(config.platform),
-    brandArchetype: kBrandArchetypes.contains(config.brandArchetype)
-        ? config.brandArchetype
-        : kBrandArchetypes.first,
-    postGoal: postGoal,
-    contentMode: contentMode,
-    contentPillar: contentPillar,
-  );
-}
+import '../../domain/services/prompt_config_sanitizer.dart';
+import '../../domain/usecases/prompt_usecases.dart';
 
 class AiPromptState {
   const AiPromptState({
@@ -76,27 +44,44 @@ class AiPromptState {
 }
 
 class AiPromptCubit extends Cubit<AiPromptState> {
-  AiPromptCubit(PromptDataSource ds, {PromptConfig? initialConfig})
-      : _ds = ds,
+  AiPromptCubit({
+    required PromptRepository repository,
+    required LoadLastPromptConfig loadLastConfig,
+    required SaveLastPromptConfig saveLastConfig,
+    required LoadPromptTemplate loadTemplate,
+    required SavePromptTemplate saveTemplate,
+    required ResetPromptTemplate resetTemplate,
+    required LoadPromptPresets loadPresets,
+    required SavePromptPresets savePresets,
+    PromptConfig? initialConfig,
+  })  : _saveLastConfig = saveLastConfig,
+        _saveTemplate = saveTemplate,
+        _resetTemplate = resetTemplate,
+        _savePresets = savePresets,
         super(AiPromptState(
-          config: _sanitizeConfig(initialConfig ?? ds.loadLastConfig()),
-          template: ds.loadTemplate(),
-          presets: ds.loadPresets()
+          config: sanitizePromptConfig(
+              initialConfig ?? repository.loadLastConfig()),
+          template: repository.loadTemplate(),
+          presets: repository
+              .loadPresets()
               .map((p) => PromptPreset(
                     id: p.id,
                     name: p.name,
-                    config: _sanitizeConfig(p.config),
+                    config: sanitizePromptConfig(p.config),
                   ))
               .toList(),
         ));
 
-  final PromptDataSource _ds;
+  final SaveLastPromptConfig _saveLastConfig;
+  final SavePromptTemplate _saveTemplate;
+  final ResetPromptTemplate _resetTemplate;
+  final SavePromptPresets _savePresets;
   final PromptBuilder _builder = const PromptBuilder();
 
   void updateConfig(PromptConfig config) {
-    final safe = _sanitizeConfig(config);
+    final safe = sanitizePromptConfig(config);
     emit(state.copyWith(config: safe));
-    _ds.saveLastConfig(safe);
+    _saveLastConfig(safe);
   }
 
   void updateField({
@@ -130,7 +115,7 @@ class AiPromptCubit extends Cubit<AiPromptState> {
   }
 
   void loadPreset(PromptPreset preset) {
-    updateConfig(_sanitizeConfig(preset.config));
+    updateConfig(sanitizePromptConfig(preset.config));
   }
 
   Future<void> savePreset(String name) async {
@@ -141,13 +126,13 @@ class AiPromptCubit extends Cubit<AiPromptState> {
     );
     final updated = [...state.presets, preset];
     emit(state.copyWith(presets: updated));
-    await _ds.savePresets(updated);
+    await _savePresets(updated);
   }
 
   Future<void> deletePreset(String id) async {
     final updated = state.presets.where((p) => p.id != id).toList();
     emit(state.copyWith(presets: updated));
-    await _ds.savePresets(updated);
+    await _savePresets(updated);
   }
 
   void updateTemplate(String template) {
@@ -155,12 +140,12 @@ class AiPromptCubit extends Cubit<AiPromptState> {
   }
 
   Future<void> persistTemplate() async {
-    await _ds.saveTemplate(state.template);
+    await _saveTemplate(state.template);
   }
 
   Future<void> resetTemplate() async {
-    await _ds.resetTemplate();
-    emit(state.copyWith(template: _ds.loadTemplate()));
+    final r = await _resetTemplate(const NoParams());
+    r.fold((_) {}, (template) => emit(state.copyWith(template: template)));
   }
 
   void toggleTemplateEditor([bool? value]) {

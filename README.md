@@ -1,17 +1,34 @@
-# socialbox
+# SocialBox
 
-A new Flutter project.
+Organize, schedule, and track your social media content.
 
-## Getting Started
+**Package:** `com.linkedif.socialbox`  
+**Stack:** Flutter · Features-First Clean Architecture · MVVM · BLoC/Cubit · Drift · GoRouter
 
-This project is a starting point for a Flutter application.
+## Documentation
 
-A few resources to get you started if this is your first Flutter project:
+| File | Purpose |
+|------|---------|
+| [CLAUDE.md](CLAUDE.md) | Full architecture spec |
+| [quickref.md](quickref.md) | One-page cheat sheet |
+| [features.md](features.md) | Feature inventory |
+| [STATUS.md](STATUS.md) | Session state and gaps |
+| [agents.md](agents.md) | Developer / agent workflow |
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Build (Windows, project on `I:` drive)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+$env:PUB_CACHE = "I:\.pub-cache"
+Set-Location I:\Posts\socialbox
+flutter pub get
+flutter pub run build_runner build --delete-conflicting-outputs
+flutter run -d <device_id>
+```
+
+## Architecture
+
+```
+View (pages/widgets) → ViewModel (Bloc/Cubit) → UseCase → Repository → DataSource
+```
+
+Features live under `lib/features/{name}/` with `data/`, `domain/`, `presentation/` layers.

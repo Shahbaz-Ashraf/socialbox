@@ -13,4 +13,11 @@ abstract class AuthRepository {
   });
   Future<Either<Failure, Unit>> disconnect(SocialPlatform platform);
   Future<Either<Failure, ConnectedAccount>> refresh(SocialPlatform platform);
+  Future<String?> getClientId(SocialPlatform platform);
+  Future<String?> getClientSecret(SocialPlatform platform);
+  Future<Either<Failure, Unit>> saveCredentials(
+    SocialPlatform platform, {
+    required String clientId,
+    String? clientSecret,
+  });
 }

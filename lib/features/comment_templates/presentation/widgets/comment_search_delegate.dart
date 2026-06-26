@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/services/clipboard_service.dart';
-import '../../domain/repositories/comment_repository.dart';
+import '../../../../injection_container.dart';
 import '../../domain/usecases/comment_usecases.dart';
 
 class CommentSearchDelegate extends SearchDelegate {
   CommentSearchDelegate({
-    required this.repository,
     required this.searchUseCase,
+    required this.onCopied,
   });
 
-  final CommentRepository repository;
   final SearchComments searchUseCase;
+  final Future<void> Function(String commentId, String text) onCopied;
 
   @override
   String? get searchFieldLabel => 'Search comments';
@@ -78,9 +77,8 @@ class CommentSearchDelegate extends SearchDelegate {
                     icon: const Icon(Icons.copy_rounded),
                     onPressed: () async {
                       final navigator = Navigator.of(ctx);
-                      await Clipboard.setData(ClipboardData(text: c.text));
-                      await ClipboardService().copyText(ctx, c.text);
-                      await repository.incrementUsageCount(c.id);
+                      await getIt<ClipboardService>().copyText(ctx, c.text);
+                      await onCopied(c.id, c.text);
                       if (navigator.mounted) close(ctx, null);
                     },
                   ),

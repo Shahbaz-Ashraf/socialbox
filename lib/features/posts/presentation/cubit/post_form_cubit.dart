@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../ai_prompts/domain/entities/ai_post_prefill.dart';
+import '../../../hashtags/domain/usecases/hashtag_usecases.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/social_post.dart';
 import '../../domain/repositories/post_repository.dart';
@@ -112,13 +113,36 @@ class PostFormCubit extends Cubit<PostFormData> {
   PostFormCubit({
     required this.createPost,
     required this.updatePost,
+    required this.getPostById,
+    required this.recordHashtagUsage,
+    required this.extractHashtags,
     PostFormData? initial,
   }) : super(initial ?? const PostFormData());
 
   final CreatePost createPost;
   final UpdatePost updatePost;
+  final GetPostById getPostById;
+  final RecordHashtagUsage recordHashtagUsage;
+  final ExtractHashtags extractHashtags;
 
   void load(SocialPost post) => emit(PostFormData.fromPost(post));
+
+  Future<bool> loadById(String id) async {
+    final result = await getPostById(id);
+    return result.fold(
+      (_) => false,
+      (post) {
+        emit(PostFormData.fromPost(post));
+        return true;
+      },
+    );
+  }
+
+  void applyDefaultPlatforms(List<SocialPlatform> platforms) {
+    if (state.id == null && platforms.isNotEmpty && state.platforms.isEmpty) {
+      emit(state.copyWith(platforms: platforms));
+    }
+  }
 
   void loadFromAiPrefill(AiPostPrefill prefill) => emit(PostFormData(
         title: prefill.title ?? '',
@@ -187,9 +211,20 @@ class PostFormCubit extends Cubit<PostFormData> {
         attachments: state.attachments.where((a) => a != path).toList()));
   }
 
-  Future<bool> submit() async {
-    if (!state.isValid) return false;
-    if (!state.isScheduledValid) return false;
+  Future<void> _recordHashtags() async {
+    final fromContent =
+        (await extractHashtags(state.content)).getOrElse((_) => <String>[]);
+    final merged = <String>{
+      ...fromContent,
+      ...state.tags.map((t) => t.toLowerCase()),
+    };
+    if (merged.isEmpty) return;
+    await recordHashtagUsage(merged.toList());
+  }
+
+  Future<SocialPost?> submit() async {
+    if (!state.isValid) return null;
+    if (!state.isScheduledValid) return null;
     if (state.id == null) {
       final result = await createPost(CreatePostParams(
         title: state.title.trim(),
@@ -204,7 +239,13 @@ class PostFormCubit extends Cubit<PostFormData> {
         tags: state.tags,
         notes: state.notes,
       ));
-      return result.isRight();
+      return result.fold(
+        (_) => null,
+        (post) async {
+          await _recordHashtags();
+          return post;
+        },
+      );
     } else {
       final r = await updatePost(UpdatePostParams(
         id: state.id!,
@@ -221,7 +262,13 @@ class PostFormCubit extends Cubit<PostFormData> {
         notes: state.notes,
         createdAt: DateTime.now(),
       ));
-      return r.isRight();
+      return r.fold(
+        (_) => null,
+        (post) async {
+          await _recordHashtags();
+          return post;
+        },
+      );
     }
   }
 }

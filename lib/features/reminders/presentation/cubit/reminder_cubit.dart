@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/notification_service.dart';
+import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../domain/entities/reminder.dart';
 import '../../domain/repositories/reminder_repository.dart';
 
@@ -48,13 +49,18 @@ class ReminderCubit extends Cubit<ReminderState> {
   ReminderCubit({
     required this.repository,
     required this.notificationService,
+    required this.settingsRepository,
   }) : super(const ReminderInitial()) {
     _subscribe();
   }
 
   final ReminderRepository repository;
   final NotificationService notificationService;
+  final SettingsRepository settingsRepository;
   StreamSubscription? _sub;
+
+  bool get _notificationsEnabled =>
+      settingsRepository.getSettings().enableNotifications;
 
   void _subscribe() {
     _sub?.cancel();
@@ -69,6 +75,7 @@ class ReminderCubit extends Cubit<ReminderState> {
           emit(ReminderLoaded(reminders: rs));
         }
         // Schedule upcoming reminders
+        if (!_notificationsEnabled) return;
         for (final r in rs) {
           if (r.isEnabled && r.scheduledAt.isAfter(DateTime.now())) {
             notificationService.scheduleReminder(
@@ -90,7 +97,9 @@ class ReminderCubit extends Cubit<ReminderState> {
     return r.fold(
       (f) => false,
       (reminder) async {
-        if (reminder.isEnabled && reminder.scheduledAt.isAfter(DateTime.now())) {
+        if (_notificationsEnabled &&
+            reminder.isEnabled &&
+            reminder.scheduledAt.isAfter(DateTime.now())) {
           await notificationService.scheduleReminder(
             id: reminder.notificationId,
             title: reminder.title,
@@ -109,7 +118,9 @@ class ReminderCubit extends Cubit<ReminderState> {
     await notificationService.cancelReminder(original.notificationId);
     final r = await repository.update(params);
     return r.fold((f) => false, (reminder) async {
-      if (reminder.isEnabled && reminder.scheduledAt.isAfter(DateTime.now())) {
+      if (_notificationsEnabled &&
+          reminder.isEnabled &&
+          reminder.scheduledAt.isAfter(DateTime.now())) {
         await notificationService.scheduleReminder(
           id: reminder.notificationId,
           title: reminder.title,
@@ -136,7 +147,8 @@ class ReminderCubit extends Cubit<ReminderState> {
       (updated) async {
         if (!updated.isEnabled) {
           await notificationService.cancelReminder(updated.notificationId);
-        } else if (updated.scheduledAt.isAfter(DateTime.now())) {
+        } else if (_notificationsEnabled &&
+            updated.scheduledAt.isAfter(DateTime.now())) {
           await notificationService.scheduleReminder(
             id: updated.notificationId,
             title: updated.title,

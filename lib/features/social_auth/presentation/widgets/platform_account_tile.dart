@@ -11,6 +11,7 @@ class PlatformAccountTile extends StatelessWidget {
     required this.account,
     required this.onConnect,
     required this.onDisconnect,
+    this.onRefresh,
     this.isConnecting = false,
   });
 
@@ -18,6 +19,7 @@ class PlatformAccountTile extends StatelessWidget {
   final ConnectedAccount? account;
   final VoidCallback onConnect;
   final VoidCallback onDisconnect;
+  final VoidCallback? onRefresh;
   final bool isConnecting;
 
   @override
@@ -30,7 +32,8 @@ class PlatformAccountTile extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.4)),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
+        ),
       ),
       child: Row(
         children: [
@@ -48,9 +51,13 @@ class PlatformAccountTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(platform.displayName,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(
+                  platform.displayName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   isConnecting
@@ -93,12 +100,18 @@ class PlatformAccountTile extends StatelessWidget {
               height: 22,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
-          else if (connected)
+          else if (connected) ...[
+            if (onRefresh != null)
+              IconButton(
+                tooltip: 'Refresh token',
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: onRefresh,
+              ),
             FilledButton.tonal(
               onPressed: onDisconnect,
               child: const Text('Disconnect'),
-            )
-          else
+            ),
+          ] else
             FilledButton(
               onPressed: onConnect,
               child: const Text('Connect'),

@@ -1,3 +1,5 @@
+export '../../domain/constants/prompt_options.dart';
+
 /// Default system prompt from post-writing-prompt.md
 const kDefaultPostWritingPrompt = r'''You are a Master Storyteller, Social SEO Expert, and Viral Content Architect. Your goal is to write scroll-stopping, algorithm-ranking, and deeply human social media posts for LinkedIn, Facebook, or X.
 
@@ -136,59 +138,3 @@ Provide 3 drastically different, 1-2 sentence hook options:
 - Would this encourage saves or meaningful comments?
 
 Now process the provided TOPIC and CONFIGURATION PANEL values, then output in the exact format above.''';
-
-const kBrandArchetypes = [
-  'The Builder',
-  'The Mentor',
-  'The Rebel',
-  'The Sage',
-  'The Everyman',
-];
-
-const kPostGoals = [
-  'Maximize Comments',
-  'Maximize Saves',
-  'Thought Leadership',
-  'Emotional Connection',
-  'Build genuine relationships with developers',
-  'Maximize Comments + Thought Leadership',
-];
-
-const kContentModes = [
-  'Auto (based on topic)',
-  'The Empath',
-  'The Practitioner',
-  'The Historian',
-  'The Contrarian',
-  'The Builder',
-  'The Analyst',
-];
-
-const kContentPillars = [
-  'Dart & Flutter Plugin Code & Tutorials',
-  'Latest Tech News & Ecosystem Trends',
-  'Office Politics & Workplace Realities',
-  'My Real Learning Journey',
-  'Project Breakdowns & Tech Stacks',
-  'Tips for Self-Taught Developers',
-  'Universal Humanity & Weekend Reflections',
-];
-
-const kTargetAudiences = [
-  'Aspiring Flutter developers',
-  'Junior Flutter engineers',
-  'Developers transitioning to Flutter',
-  'Self-taught developers from emerging countries',
-  'Startup Founders',
-  'Burned-out Professionals',
-  'IT Professionals',
-  'Computer Science Students',
-  'Global tech community',
-];
-
-const kAiAppLinks = [
-  (name: 'ChatGPT', url: 'https://chat.openai.com'),
-  (name: 'Gemini', url: 'https://gemini.google.com'),
-  (name: 'Claude', url: 'https://claude.ai'),
-  (name: 'Copilot', url: 'https://copilot.microsoft.com'),
-];

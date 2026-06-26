@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/utils/date_utils.dart';
+import '../../../../injection_container.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/posting_log.dart';
 
@@ -100,13 +102,22 @@ class LogTile extends StatelessWidget {
               ],
             ),
           ),
-          if (log.externalPostUrl != null)
+          if (log.externalPostUrl != null) ...[
+            IconButton(
+              tooltip: 'Copy URL',
+              icon: const Icon(Icons.link_rounded),
+              onPressed: () => getIt<ClipboardService>().copyText(
+                context,
+                log.externalPostUrl!,
+              ),
+            ),
             IconButton(
               tooltip: 'Open post',
               icon: const Icon(Icons.open_in_new_rounded),
               onPressed: () =>
                   launchUrl(Uri.parse(log.externalPostUrl!)),
             ),
+          ],
         ],
       ),
     );

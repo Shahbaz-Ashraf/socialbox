@@ -89,6 +89,11 @@ class PostListCubit extends Cubit<PostListState> {
     });
   }
 
+  void reload() {
+    emit(const PostListLoading());
+    _subscribe();
+  }
+
   void filterBy(PostStatus? status) {
     final s = state;
     if (s is PostListLoaded) {

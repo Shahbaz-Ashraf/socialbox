@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
-import '../../data/datasources/social_auth_datasource.dart';
 import '../../domain/entities/connected_account.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../cubit/auth_cubit.dart';
@@ -61,14 +60,17 @@ class _AccountsView extends StatelessWidget {
               ),
               ...SocialPlatform.values.map((p) {
                 final account = accounts[p];
-                final isConnecting = state is AuthConnecting &&
-                    state.platform == p;
+                final isConnecting =
+                    state is AuthConnecting && state.platform == p;
                 return PlatformAccountTile(
                   platform: p,
                   account: account,
                   isConnecting: isConnecting,
                   onConnect: () => _connect(context, p),
                   onDisconnect: () => _confirmDisconnect(context, p),
+                  onRefresh: account?.isConnected == true
+                      ? () => _refreshToken(context, p)
+                      : null,
                 );
               }),
             ],
@@ -89,12 +91,12 @@ class _AccountsView extends StatelessWidget {
   }
 
   Future<void> _connect(BuildContext context, SocialPlatform platform) async {
+    final authCubit = context.read<AuthCubit>();
     final clientIdCtrl = TextEditingController(
-      text: await getIt<SocialAuthDataSource>().clientIdFor(platform) ?? '',
+      text: await authCubit.getClientId(platform) ?? '',
     );
     final clientSecretCtrl = TextEditingController(
-      text: await getIt<SocialAuthDataSource>().clientSecretFor(platform) ??
-          '',
+      text: await authCubit.getClientSecret(platform) ?? '',
     );
     if (!context.mounted) return;
 
@@ -115,7 +117,9 @@ class _AccountsView extends StatelessWidget {
               TextField(
                 controller: clientIdCtrl,
                 decoration: const InputDecoration(
-                    labelText: 'Client ID', border: OutlineInputBorder()),
+                  labelText: 'Client ID',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 8),
               if (platform != SocialPlatform.twitter)
@@ -123,8 +127,9 @@ class _AccountsView extends StatelessWidget {
                   controller: clientSecretCtrl,
                   obscureText: true,
                   decoration: const InputDecoration(
-                      labelText: 'Client Secret',
-                      border: OutlineInputBorder()),
+                    labelText: 'Client Secret',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               const SizedBox(height: 12),
               Text(
@@ -136,34 +141,36 @@ class _AccountsView extends StatelessWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () {
-                if (clientIdCtrl.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Client ID required')),
-                  );
-                  return;
-                }
-                Navigator.pop(
-                  context,
-                  _OAuthCredentials(
-                    clientId: clientIdCtrl.text.trim(),
-                    clientSecret: clientSecretCtrl.text.trim().isEmpty
-                        ? null
-                        : clientSecretCtrl.text.trim(),
-                  ),
+            onPressed: () {
+              if (clientIdCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Client ID required')),
                 );
-              },
-              child: const Text('Connect')),
+                return;
+              }
+              Navigator.pop(
+                context,
+                _OAuthCredentials(
+                  clientId: clientIdCtrl.text.trim(),
+                  clientSecret: clientSecretCtrl.text.trim().isEmpty
+                      ? null
+                      : clientSecretCtrl.text.trim(),
+                ),
+              );
+            },
+            child: const Text('Connect'),
+          ),
         ],
       ),
     );
     if (credentials == null) return;
 
     if (!context.mounted) return;
-    await getIt<SocialAuthDataSource>().saveCredentials(
+    await authCubit.saveCredentials(
       platform,
       clientId: credentials.clientId,
       clientSecret: credentials.clientSecret,
@@ -174,6 +181,23 @@ class _AccountsView extends StatelessWidget {
           clientId: credentials.clientId,
           clientSecret: credentials.clientSecret,
         );
+  }
+
+  Future<void> _refreshToken(
+      BuildContext context, SocialPlatform platform) async {
+    final ok = await context.read<AuthCubit>().refresh(platform);
+    if (!context.mounted) return;
+    if (ok) {
+      AppSnackbar.success(
+        context,
+        'Token refreshed for ${platform.displayName}',
+      );
+    } else {
+      AppSnackbar.error(
+        context,
+        'Could not refresh token for ${platform.displayName}',
+      );
+    }
   }
 
   String _helpFor(SocialPlatform platform) {
@@ -199,14 +223,17 @@ class _AccountsView extends StatelessWidget {
       builder: (_) => AlertDialog(
         title: Text('Disconnect ${platform.displayName}?'),
         content: const Text(
-            'Your stored OAuth credentials will be removed. You can reconnect anytime.'),
+          'Your stored OAuth credentials will be removed. You can reconnect anytime.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton.tonal(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Disconnect')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Disconnect'),
+          ),
         ],
       ),
     );

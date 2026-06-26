@@ -135,7 +135,18 @@ final appRouter = GoRouter(
             GoRoute(
               path: 'reminders',
               name: RouteNames.reminders,
-              builder: (_, __) => const RemindersPage(),
+              builder: (_, state) {
+                final extra = state.extra;
+                if (extra is Map<String, dynamic>) {
+                  return RemindersPage(
+                    prefillTitle: extra['prefillTitle'] as String?,
+                    prefillTime: extra['prefillTime'] as DateTime?,
+                    postId: extra['postId'] as String?,
+                    autoOpenForm: true,
+                  );
+                }
+                return const RemindersPage();
+              },
             ),
             GoRoute(
               path: 'ai-writer',

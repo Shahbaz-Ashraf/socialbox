@@ -7,8 +7,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
 import '../../data/constants/default_post_writing_prompt.dart';
-import '../../data/datasources/prompt_datasource.dart';
+import '../../domain/constants/prompt_options.dart';
 import '../../domain/entities/prompt_config.dart';
+import '../../domain/repositories/prompt_repository.dart';
+import '../../domain/usecases/prompt_usecases.dart';
 import '../cubit/ai_prompt_cubit.dart';
 import '../widgets/paste_ai_response_sheet.dart';
 
@@ -57,7 +59,14 @@ class AiPromptStudioPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => AiPromptCubit(
-        getIt<PromptDataSource>(),
+        repository: getIt<PromptRepository>(),
+        loadLastConfig: getIt<LoadLastPromptConfig>(),
+        saveLastConfig: getIt<SaveLastPromptConfig>(),
+        loadTemplate: getIt<LoadPromptTemplate>(),
+        saveTemplate: getIt<SavePromptTemplate>(),
+        resetTemplate: getIt<ResetPromptTemplate>(),
+        loadPresets: getIt<LoadPromptPresets>(),
+        savePresets: getIt<SavePromptPresets>(),
         initialConfig: initialConfig,
       ),
       child: const _StudioView(),

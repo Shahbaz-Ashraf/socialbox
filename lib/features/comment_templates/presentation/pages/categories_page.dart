@@ -45,8 +45,8 @@ class _CategoriesView extends StatelessWidget {
             onPressed: () => showSearch(
               context: context,
               delegate: CommentSearchDelegate(
-                repository: getIt<CommentRepository>(),
                 searchUseCase: getIt<SearchComments>(),
+                onCopied: (id, _) => getIt<IncrementUsageCount>()(id),
               ),
             ),
           ),

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../core/services/clipboard_service.dart';
+import '../../../../injection_container.dart';
 import '../../domain/entities/ai_post_prefill.dart';
 import '../../domain/services/ai_response_parser.dart';
 
@@ -144,11 +146,27 @@ class _PasteAiResponseSheetState extends State<_PasteAiResponseSheet> {
                   ),
                   if (parsed != null && parsed.hasContent) ...[
                     const SizedBox(height: 16),
-                    Text('Extracted post',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.primary,
-                        )),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Extracted post',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Copy extracted content',
+                          icon: const Icon(Icons.copy_rounded),
+                          onPressed: () => getIt<ClipboardService>().copyText(
+                            context,
+                            parsed.content,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       width: double.infinity,

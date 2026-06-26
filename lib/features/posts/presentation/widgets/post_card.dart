@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../../injection_container.dart';
 import '../../domain/entities/social_post.dart';
 import 'post_status_badge.dart';
 
@@ -18,7 +20,9 @@ class PostCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.4)),
+        side: BorderSide(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
+        ),
       ),
       child: InkWell(
         onTap: onTap,
@@ -39,6 +43,15 @@ class PostCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Copy content',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    onPressed: () => getIt<ClipboardService>().copyText(
+                      context,
+                      post.content,
                     ),
                   ),
                   PostStatusBadge(status: post.status),

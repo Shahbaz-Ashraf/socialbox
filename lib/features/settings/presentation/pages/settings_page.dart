@@ -6,9 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
-import '../../../comment_templates/domain/repositories/comment_repository.dart';
-import '../../data/datasources/settings_datasource.dart';
 import '../../domain/entities/app_settings.dart';
 import '../cubit/settings_cubit.dart';
 
@@ -18,7 +17,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SettingsCubit(getIt<SettingsDataSource>()),
+      create: (_) => getIt<SettingsCubit>(),
       child: const _SettingsView(),
     );
   }
@@ -120,11 +119,19 @@ class _SettingsView extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.pushNamed(RouteNames.aiPromptStudio),
               ),
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: const Text('Posting log'),
+                subtitle: const Text('Global history of all platform posts'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.pushNamed(RouteNames.logs),
+              ),
               const Divider(),
               const _SectionTitle('Data'),
               ListTile(
                 leading: const Icon(Icons.download_rounded),
                 title: const Text('Export comments as CSV'),
+                subtitle: const Text('Share or copy to clipboard'),
                 onTap: () => _exportCsv(context),
               ),
               ListTile(
@@ -157,31 +164,40 @@ class _SettingsView extends StatelessWidget {
   }
 
   Future<void> _exportCsv(BuildContext context) async {
-    final repo = getIt<CommentRepository>();
-    final catsRes = await repo.getAllCategories();
-    final buffer = StringBuffer('category,emoji,text,tags,favorites,copies\n');
-    await catsRes.fold((_) async {}, (cats) async {
-      for (final c in cats) {
-        final list = await repo.getCommentsByCategory(c.id);
-        list.fold((_) {}, (comments) {
-          for (final m in comments) {
-            final escaped =
-                m.text.replaceAll('"', '""').replaceAll('\n', ' ');
-            final tags = m.tags.join('|');
-            buffer.writeln(
-                '"${c.name}","${c.icon}","$escaped","$tags",${m.isFavorite},${m.usageCount}');
-          }
-        });
-      }
-    });
-    await Share.share(
-      buffer.toString(),
-      subject: 'SocialBox Comments Export',
+    final cubit = context.read<SettingsCubit>();
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.share_rounded),
+              title: const Text('Share CSV'),
+              onTap: () => Navigator.pop(ctx, 'share'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.content_copy_rounded),
+              title: const Text('Copy to clipboard'),
+              onTap: () => Navigator.pop(ctx, 'copy'),
+            ),
+          ],
+        ),
+      ),
     );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Export ready — share or save the CSV')),
-      );
+    if (!context.mounted || action == null) return;
+    if (action == 'share') {
+      final ok = await cubit.exportCommentsToShare();
+      if (context.mounted && ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Export ready — share or save the CSV')),
+        );
+      }
+    } else if (action == 'copy') {
+      final csv = await cubit.exportCommentsToClipboard();
+      if (csv != null && context.mounted) {
+        await getIt<ClipboardService>().copyText(context, csv);
+      }
     }
   }
 }

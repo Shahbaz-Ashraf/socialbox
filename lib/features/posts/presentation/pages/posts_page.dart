@@ -6,8 +6,7 @@ import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/social_post.dart';
-import '../../domain/repositories/post_repository.dart';
-import '../../domain/usecases/post_usecases.dart';
+import '../bloc/post_list_bloc.dart';
 import '../cubit/post_list_cubit.dart';
 import '../widgets/post_card.dart';
 
@@ -17,11 +16,7 @@ class PostsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => PostListCubit(
-        repository: getIt<PostRepository>(),
-        markPostedManually: getIt<MarkPostedManually>(),
-        deletePost: getIt<DeletePost>(),
-      ),
+      create: (_) => getIt<PostListBloc>(),
       child: const _PostsView(),
     );
   }
@@ -60,7 +55,7 @@ class _PostsView extends StatelessWidget {
           label: const Text('New Post'),
           onPressed: () => context.pushNamed(RouteNames.createPost),
         ),
-        body: BlocBuilder<PostListCubit, PostListState>(
+        body: BlocBuilder<PostListBloc, PostListState>(
           builder: (context, state) {
             if (state is PostListInitial || state is PostListLoading) {
               return const Center(child: CircularProgressIndicator());
@@ -78,23 +73,27 @@ class _PostsView extends StatelessWidget {
                 children: [
                   _PostList(posts: state.posts),
                   _PostList(
-                      posts: state.posts
-                          .where((p) => p.status == PostStatus.draft)
-                          .toList()),
+                    posts: state.posts
+                        .where((p) => p.status == PostStatus.draft)
+                        .toList(),
+                  ),
                   _PostList(
-                      posts: state.posts
-                          .where((p) => p.status == PostStatus.scheduled)
-                          .toList()),
+                    posts: state.posts
+                        .where((p) => p.status == PostStatus.scheduled)
+                        .toList(),
+                  ),
                   _PostList(
-                      posts: state.posts
-                          .where((p) =>
-                              p.status == PostStatus.posted ||
-                              p.status == PostStatus.partial)
-                          .toList()),
+                    posts: state.posts
+                        .where((p) =>
+                            p.status == PostStatus.posted ||
+                            p.status == PostStatus.partial)
+                        .toList(),
+                  ),
                   _PostList(
-                      posts: state.posts
-                          .where((p) => p.status == PostStatus.failed)
-                          .toList()),
+                    posts: state.posts
+                        .where((p) => p.status == PostStatus.failed)
+                        .toList(),
+                  ),
                 ],
               );
             }
@@ -119,8 +118,11 @@ class _PostList extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inbox_outlined,
-                  size: 80, color: Theme.of(context).hintColor),
+              Icon(
+                Icons.inbox_outlined,
+                size: 80,
+                color: Theme.of(context).hintColor,
+              ),
               const SizedBox(height: 12),
               const Text('No posts here yet'),
             ],
@@ -129,7 +131,10 @@ class _PostList extends StatelessWidget {
       );
     }
     return RefreshIndicator(
-      onRefresh: () async {},
+      onRefresh: () async {
+        context.read<PostListBloc>().add(const PostListReload());
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      },
       child: ListView.builder(
         padding: const EdgeInsets.only(top: 8, bottom: 96),
         itemCount: posts.length,
@@ -159,11 +164,16 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_document,
-                size: 96, color: Theme.of(context).hintColor),
+            Icon(
+              Icons.edit_document,
+              size: 96,
+              color: Theme.of(context).hintColor,
+            ),
             const SizedBox(height: 16),
-            const Text('No posts yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const Text(
+              'No posts yet',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             const Text('Tap "New Post" to get started.'),
             const SizedBox(height: 24),

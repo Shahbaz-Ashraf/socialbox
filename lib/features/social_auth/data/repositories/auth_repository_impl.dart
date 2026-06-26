@@ -63,6 +63,32 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<String?> getClientId(SocialPlatform platform) =>
+      _ds.clientIdFor(platform);
+
+  @override
+  Future<String?> getClientSecret(SocialPlatform platform) =>
+      _ds.clientSecretFor(platform);
+
+  @override
+  Future<Either<Failure, Unit>> saveCredentials(
+    SocialPlatform platform, {
+    required String clientId,
+    String? clientSecret,
+  }) async {
+    try {
+      await _ds.saveCredentials(
+        platform,
+        clientId: clientId,
+        clientSecret: clientSecret,
+      );
+      return const Right(unit);
+    } catch (e) {
+      return Left(DatabaseFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, ConnectedAccount>> refresh(
       SocialPlatform platform) async {
     try {

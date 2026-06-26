@@ -107,6 +107,25 @@ class AuthCubit extends Cubit<AuthState> {
     return r.isRight();
   }
 
+  Future<String?> getClientId(SocialPlatform platform) =>
+      _repo.getClientId(platform);
+
+  Future<String?> getClientSecret(SocialPlatform platform) =>
+      _repo.getClientSecret(platform);
+
+  Future<bool> saveCredentials(
+    SocialPlatform platform, {
+    required String clientId,
+    String? clientSecret,
+  }) async {
+    final r = await _repo.saveCredentials(
+      platform,
+      clientId: clientId,
+      clientSecret: clientSecret,
+    );
+    return r.isRight();
+  }
+
   Future<List<ConnectedAccount>> _accountsOrEmpty() async {
     final r = await _repo.getConnectedAccounts();
     return r.getOrElse((_) => const <ConnectedAccount>[]);

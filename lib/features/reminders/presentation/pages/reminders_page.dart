@@ -10,7 +10,18 @@ import '../widgets/reminder_form_sheet.dart';
 import '../widgets/reminder_tile.dart';
 
 class RemindersPage extends StatelessWidget {
-  const RemindersPage({super.key});
+  const RemindersPage({
+    super.key,
+    this.prefillTitle,
+    this.prefillTime,
+    this.postId,
+    this.autoOpenForm = false,
+  });
+
+  final String? prefillTitle;
+  final DateTime? prefillTime;
+  final String? postId;
+  final bool autoOpenForm;
 
   @override
   Widget build(BuildContext context) {
@@ -18,14 +29,52 @@ class RemindersPage extends StatelessWidget {
       create: (_) => ReminderCubit(
         repository: getIt<ReminderRepository>(),
         notificationService: getIt<NotificationService>(),
+        settingsRepository: getIt(),
       ),
-      child: const _RemindersView(),
+      child: _RemindersView(
+        prefillTitle: prefillTitle,
+        prefillTime: prefillTime,
+        postId: postId,
+        autoOpenForm: autoOpenForm,
+      ),
     );
   }
 }
 
-class _RemindersView extends StatelessWidget {
-  const _RemindersView();
+class _RemindersView extends StatefulWidget {
+  const _RemindersView({
+    this.prefillTitle,
+    this.prefillTime,
+    this.postId,
+    this.autoOpenForm = false,
+  });
+
+  final String? prefillTitle;
+  final DateTime? prefillTime;
+  final String? postId;
+  final bool autoOpenForm;
+
+  @override
+  State<_RemindersView> createState() => _RemindersViewState();
+}
+
+class _RemindersViewState extends State<_RemindersView> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoOpenForm) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showForm(
+            context,
+            prefillTitle: widget.prefillTitle,
+            prefillTime: widget.prefillTime,
+            linkedPostId: widget.postId,
+          );
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +96,11 @@ class _RemindersView extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.notifications_off_rounded,
-                        size: 96, color: Theme.of(context).hintColor),
+                    Icon(
+                      Icons.notifications_off_rounded,
+                      size: 96,
+                      color: Theme.of(context).hintColor,
+                    ),
                     const SizedBox(height: 12),
                     const Text('No reminders yet'),
                     const SizedBox(height: 6),
@@ -64,27 +116,33 @@ class _RemindersView extends StatelessWidget {
               children: [
                 if (upcoming.isNotEmpty) ...[
                   _Header('Upcoming (${upcoming.length})'),
-                  ...upcoming.map((r) => Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: ReminderTile(
-                          reminder: r,
-                          onToggle: (_) => context.read<ReminderCubit>().toggle(r),
-                          onTap: () => _showForm(context, existing: r),
-                          onDelete: () => _confirmDelete(context, r),
-                        ),
-                      )),
+                  ...upcoming.map(
+                    (r) => Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      child: ReminderTile(
+                        reminder: r,
+                        onToggle: (_) =>
+                            context.read<ReminderCubit>().toggle(r),
+                        onTap: () => _showForm(context, existing: r),
+                        onDelete: () => _confirmDelete(context, r),
+                      ),
+                    ),
+                  ),
                 ],
                 if (past.isNotEmpty) ...[
                   _Header('Past (${past.length})'),
-                  ...past.map((r) => Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: ReminderTile(
-                          reminder: r,
-                          onToggle: (_) => context.read<ReminderCubit>().toggle(r),
-                          onTap: () => _showForm(context, existing: r),
-                          onDelete: () => _confirmDelete(context, r),
-                        ),
-                      )),
+                  ...past.map(
+                    (r) => Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      child: ReminderTile(
+                        reminder: r,
+                        onToggle: (_) =>
+                            context.read<ReminderCubit>().toggle(r),
+                        onTap: () => _showForm(context, existing: r),
+                        onDelete: () => _confirmDelete(context, r),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             );
@@ -95,7 +153,13 @@ class _RemindersView extends StatelessWidget {
     );
   }
 
-  void _showForm(BuildContext context, {Reminder? existing}) {
+  void _showForm(
+    BuildContext context, {
+    Reminder? existing,
+    String? prefillTitle,
+    DateTime? prefillTime,
+    String? linkedPostId,
+  }) {
     final cubit = context.read<ReminderCubit>();
     showModalBottomSheet(
       context: context,
@@ -106,6 +170,9 @@ class _RemindersView extends StatelessWidget {
       ),
       builder: (_) => ReminderFormSheet(
         initial: existing,
+        prefillTitle: prefillTitle,
+        prefillTime: prefillTime,
+        linkedPostId: linkedPostId,
         onSubmit: (params) async {
           if (existing == null) {
             return await cubit.create(params);
@@ -139,11 +206,13 @@ class _RemindersView extends StatelessWidget {
         content: const Text('This reminder will be cancelled and removed.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton.tonal(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
