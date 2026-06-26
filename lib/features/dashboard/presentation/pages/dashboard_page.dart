@@ -11,6 +11,7 @@ import '../../../posting_log/presentation/widgets/log_tile.dart';
 import '../../../reminders/domain/entities/reminder.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import '../../domain/usecases/get_dashboard_stats.dart';
+import '../../../ai_prompts/presentation/widgets/dashboard_ai_writer_card.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/stat_card.dart';
 
@@ -42,6 +43,11 @@ class _DashboardView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('SocialBox'),
         actions: [
+          IconButton(
+            tooltip: 'AI Post Writer',
+            icon: const Icon(Icons.psychology_rounded),
+            onPressed: () => context.pushNamed(RouteNames.aiPromptStudio),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => context.read<DashboardCubit>().load(),
@@ -78,6 +84,10 @@ class _DashboardView extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  const DashboardAiWriterCard(),
+                  const SizedBox(height: 12),
+                  _QuickActions(),
+                  const SizedBox(height: 16),
                   _StatGrid(stats: state.stats),
                   const SizedBox(height: 20),
                   _UpcomingPosts(posts: state.stats.upcomingPosts),
@@ -289,6 +299,82 @@ class _PlatformBreakdown extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _QuickActions extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ActionCard(
+            icon: Icons.add_circle_outline_rounded,
+            label: 'New Post',
+            subtitle: 'Create manually',
+            color: const Color(0xFF2196F3),
+            onTap: () => context.pushNamed(RouteNames.createPost),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _ActionCard(
+            icon: Icons.calendar_today_rounded,
+            label: 'Calendar',
+            subtitle: 'Schedule view',
+            color: const Color(0xFF6750A4),
+            onTap: () => context.go('/calendar'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(label,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: color)),
+              Text(subtitle,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).hintColor)),
+            ],
+          ),
+        ),
       ),
     );
   }

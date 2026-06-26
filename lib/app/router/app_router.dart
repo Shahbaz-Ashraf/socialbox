@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../pages/main_shell.dart';
+import '../../features/ai_prompts/domain/entities/ai_post_prefill.dart';
+import '../../features/ai_prompts/domain/entities/prompt_config.dart';
+import '../../features/ai_prompts/presentation/pages/ai_prompt_studio_page.dart';
 import '../../features/comment_templates/presentation/pages/categories_page.dart';
 import '../../features/comment_templates/presentation/pages/comments_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
@@ -26,6 +29,31 @@ final appRouter = GoRouter(
           path: '/dashboard',
           name: RouteNames.dashboard,
           builder: (_, __) => const DashboardPage(),
+        ),
+        GoRoute(
+          path: '/ai-writer',
+          name: RouteNames.aiPromptStudio,
+          builder: (_, state) {
+            final extra = state.extra;
+            if (extra is PromptConfig) {
+              return AiPromptStudioPage(initialConfig: extra);
+            }
+            final qp = state.uri.queryParameters;
+            PromptConfig? initial;
+            if (qp.containsKey('topic')) {
+              initial = PromptConfig.fromPost(
+                title: qp['topic'] ?? '',
+                tags: qp['tags']
+                    ?.split(',')
+                    .where((t) => t.isNotEmpty)
+                    .toList(),
+              );
+              if (qp['platform'] != null) {
+                initial = initial.copyWith(platform: qp['platform']!);
+              }
+            }
+            return AiPromptStudioPage(initialConfig: initial);
+          },
         ),
         GoRoute(
           path: '/calendar',
@@ -56,7 +84,11 @@ final appRouter = GoRouter(
               name: RouteNames.createPost,
               builder: (_, state) {
                 final prefill = state.uri.queryParameters['prefillDate'];
-                return CreateEditPostPage(prefillDate: _parseDate(prefill));
+                final extra = state.extra;
+                return CreateEditPostPage(
+                  prefillDate: _parseDate(prefill),
+                  aiPrefill: extra is AiPostPrefill ? extra : null,
+                );
               },
             ),
             GoRoute(
@@ -102,6 +134,10 @@ final appRouter = GoRouter(
               path: 'reminders',
               name: RouteNames.reminders,
               builder: (_, __) => const RemindersPage(),
+            ),
+            GoRoute(
+              path: 'ai-writer',
+              redirect: (_, __) => '/ai-writer',
             ),
           ],
         ),

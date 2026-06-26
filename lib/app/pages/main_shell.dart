@@ -15,6 +15,7 @@ class MainShell extends StatelessWidget {
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/ai-writer')) return 0;
     for (var i = 0; i < _tabs.length; i++) {
       if (location == _tabs[i].path) return i;
       if (i > 0 && location.startsWith('${_tabs[i].path}/')) return i;

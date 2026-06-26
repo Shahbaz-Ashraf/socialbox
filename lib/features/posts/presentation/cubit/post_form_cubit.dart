@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../ai_prompts/domain/entities/ai_post_prefill.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/social_post.dart';
 import '../../domain/repositories/post_repository.dart';
@@ -118,6 +119,17 @@ class PostFormCubit extends Cubit<PostFormData> {
   final UpdatePost updatePost;
 
   void load(SocialPost post) => emit(PostFormData.fromPost(post));
+
+  void loadFromAiPrefill(AiPostPrefill prefill) => emit(PostFormData(
+        title: prefill.title ?? '',
+        content: prefill.content,
+        platforms: prefill.platforms.isNotEmpty
+            ? prefill.platforms
+            : const [SocialPlatform.linkedin],
+        tags: prefill.tags,
+        notes: prefill.notes,
+        status: PostStatus.draft,
+      ));
 
   void setTitle(String v) => emit(state.copyWith(title: v));
   void setContent(String v) => emit(state.copyWith(content: v));

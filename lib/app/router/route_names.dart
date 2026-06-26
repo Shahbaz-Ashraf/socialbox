@@ -14,4 +14,5 @@ class RouteNames {
   static const settings = 'settings';
   static const socialAccounts = 'socialAccounts';
   static const reminders = 'reminders';
+  static const aiPromptStudio = 'aiPromptStudio';
 }

@@ -111,6 +111,16 @@ class _SettingsView extends StatelessWidget {
                 onTap: () => context.pushNamed(RouteNames.reminders),
               ),
               const Divider(),
+              const _SectionTitle('AI Writing'),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome_rounded),
+                title: const Text('AI Post Writer'),
+                subtitle: const Text(
+                    'Configure prompts, copy to clipboard for ChatGPT, Gemini & more'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.pushNamed(RouteNames.aiPromptStudio),
+              ),
+              const Divider(),
               const _SectionTitle('Data'),
               ListTile(
                 leading: const Icon(Icons.download_rounded),

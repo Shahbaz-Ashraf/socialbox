@@ -8,6 +8,7 @@ import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../injection_container.dart';
+import '../../../ai_prompts/domain/entities/prompt_config.dart';
 import '../../../posting_log/presentation/cubit/log_cubit.dart';
 import '../../../posting_log/presentation/widgets/log_tile.dart';
 import '../../domain/entities/social_post.dart';
@@ -69,6 +70,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
         appBar: AppBar(
           title: const Text('Post Detail'),
           actions: [
+            IconButton(
+              tooltip: 'AI Post Writer',
+              icon: const Icon(Icons.psychology_rounded),
+              onPressed: () {
+                context.pushNamed(
+                  RouteNames.aiPromptStudio,
+                  extra: PromptConfig.fromPost(
+                    title: post.title,
+                    content: post.content,
+                    platforms: post.platforms,
+                    tags: post.tags,
+                  ),
+                );
+              },
+            ),
             IconButton(
               tooltip: 'Edit',
               icon: const Icon(Icons.edit_rounded),

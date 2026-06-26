@@ -37,6 +37,13 @@ class _PostsView extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Posts'),
+          actions: [
+            IconButton(
+              tooltip: 'AI Post Writer',
+              icon: const Icon(Icons.psychology_rounded),
+              onPressed: () => context.pushNamed(RouteNames.aiPromptStudio),
+            ),
+          ],
           bottom: const TabBar(
             isScrollable: true,
             tabs: [

@@ -5,6 +5,7 @@ import 'core/database/app_database.dart';
 import 'core/services/clipboard_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/secure_storage_service.dart';
+import 'features/ai_prompts/data/datasources/prompt_datasource.dart';
 import 'features/comment_templates/data/datasources/comment_local_datasource.dart';
 import 'features/comment_templates/data/repositories/comment_repository_impl.dart';
 import 'features/comment_templates/domain/repositories/comment_repository.dart';
@@ -56,6 +57,8 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<SecureStorageService>(() => SecureStorageService());
   getIt.registerLazySingleton<SettingsDataSource>(
       () => SettingsDataSource(getIt<SharedPreferences>()));
+  getIt.registerLazySingleton<PromptDataSource>(
+      () => PromptDataSource(getIt<SharedPreferences>()));
 
   // Social Auth -------------------------------------------------------
   getIt.registerLazySingleton<DeepLinkHandler>(() => DeepLinkHandler());

@@ -5,8 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/router/route_names.dart';
 import '../../../../core/constants/predefined_categories.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../ai_prompts/domain/entities/ai_post_prefill.dart';
+import '../../../ai_prompts/domain/entities/prompt_config.dart';
+import '../../../ai_prompts/presentation/widgets/paste_ai_response_sheet.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
 import '../../../hashtags/data/services/hashtag_service.dart';
@@ -18,10 +22,16 @@ import '../widgets/recurring_options_sheet.dart';
 import '../widgets/schedule_date_picker.dart';
 
 class CreateEditPostPage extends StatelessWidget {
-  const CreateEditPostPage({super.key, this.postId, this.prefillDate});
+  const CreateEditPostPage({
+    super.key,
+    this.postId,
+    this.prefillDate,
+    this.aiPrefill,
+  });
 
   final String? postId;
   final DateTime? prefillDate;
+  final AiPostPrefill? aiPrefill;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +45,8 @@ class CreateEditPostPage extends StatelessWidget {
           getIt<GetPostById>().call(postId!).then((r) {
             r.fold((_) {}, (p) => cubit.load(p));
           });
+        } else if (aiPrefill != null) {
+          cubit.loadFromAiPrefill(aiPrefill!);
         } else if (prefillDate != null) {
           cubit.setScheduledAt(prefillDate);
         }
@@ -86,6 +98,16 @@ class _FormViewState extends State<_FormView> {
           appBar: AppBar(
             title: Text(state.id == null ? 'New Post' : 'Edit Post'),
             actions: [
+              IconButton(
+                tooltip: 'AI Post Writer',
+                icon: const Icon(Icons.psychology_rounded),
+                onPressed: () => _openAiWriter(context, state),
+              ),
+              IconButton(
+                tooltip: 'Paste AI response',
+                icon: const Icon(Icons.paste_rounded),
+                onPressed: () => _pasteAiResponse(context, state, cubit),
+              ),
               IconButton(
                 tooltip: 'Insert template',
                 icon: const Icon(Icons.auto_awesome_rounded),
@@ -271,6 +293,37 @@ class _FormViewState extends State<_FormView> {
         'postId': state.id,
       },
     );
+  }
+
+  void _pasteAiResponse(
+    BuildContext context,
+    PostFormData state,
+    PostFormCubit cubit,
+  ) {
+    showPasteAiResponseSheet(
+      context,
+      topic: state.title.isNotEmpty ? state.title : _titleCtrl.text,
+      platform: state.platforms.isNotEmpty
+          ? state.platforms.first.displayName
+          : 'LinkedIn',
+      onApply: (prefill) {
+        cubit.loadFromAiPrefill(prefill);
+        _titleCtrl.text = prefill.title ?? '';
+        _contentCtrl.text = prefill.content;
+        _notesCtrl.text = prefill.notes ?? '';
+        AppSnackbar.success(context, 'AI response applied to post');
+      },
+    );
+  }
+
+  void _openAiWriter(BuildContext context, PostFormData state) {
+    final config = PromptConfig.fromPost(
+      title: state.title.isNotEmpty ? state.title : _titleCtrl.text,
+      content: state.content,
+      platforms: state.platforms,
+      tags: state.tags,
+    );
+    context.pushNamed(RouteNames.aiPromptStudio, extra: config);
   }
 
   void _showTemplates(BuildContext context) {

@@ -31,4 +31,7 @@ class AppConstants {
   // Storage keys
   static const String settingsKey = 'socialbox_settings';
   static const String oauthTokenPrefix = 'socialbox_oauth_';
+  static const String promptTemplateKey = 'socialbox_prompt_template';
+  static const String promptLastConfigKey = 'socialbox_prompt_last_config';
+  static const String promptPresetsKey = 'socialbox_prompt_presets';
 }
