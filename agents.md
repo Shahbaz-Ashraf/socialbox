@@ -215,6 +215,7 @@ flutter test
 | `quickref.md` | One-page cheat sheet |
 | `post-writing-prompt.md` | Default AI prompt template reference |
 | `guide/social-media-auto-posting.md` | User guide: API auto-posting per platform, setup, limitations |
+| `guide/ai-prompt-writer.md` | AI Writer: template vs config, presets, multiple versions, reset |
 | `guide/README.md` | Index of guides in `guide/` |
 
 ---
