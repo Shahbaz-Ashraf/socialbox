@@ -10,78 +10,106 @@ Future<void> showAiAppPickerSheet(
 }) {
   return showModalBottomSheet<void>(
     context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (sheetCtx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(sheetCtx).dividerColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Open in AI',
-              style: Theme.of(sheetCtx).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Copies your prompt, then opens the app in your browser.',
-              style: TextStyle(
-                fontSize: 13,
-                color: Theme.of(sheetCtx).hintColor,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...kAiAppLinks.map(
-              (app) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: Theme.of(sheetCtx)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.12),
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Theme.of(sheetCtx).colorScheme.primary,
-                    size: 20,
+    builder: (sheetCtx) {
+      final theme = Theme.of(sheetCtx);
+      final bottomInset = MediaQuery.viewInsetsOf(sheetCtx).bottom;
+
+      return Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.45,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                title: Text(app.name),
-                subtitle: Text(
-                  app.url.replaceFirst('https://', ''),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(sheetCtx).hintColor,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Open in AI',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Copies your prompt, then opens the app in your browser.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.55,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                trailing: const Icon(Icons.open_in_new_rounded, size: 20),
-                enabled: enabled,
-                onTap: enabled
-                    ? () async {
-                        Navigator.pop(sheetCtx);
-                        await onCopyAndOpen(app.url);
-                        HapticFeedback.mediumImpact();
-                      }
-                    : null,
-              ),
-            ),
-          ],
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    itemCount: kAiAppLinks.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 4),
+                    itemBuilder: (context, index) {
+                      final app = kAiAppLinks[index];
+                      return ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: theme.colorScheme.primaryContainer,
+                          child: Icon(
+                            Icons.auto_awesome_rounded,
+                            color: theme.colorScheme.onPrimaryContainer,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          app.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          app.url.replaceFirst('https://', ''),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 20),
+                        enabled: enabled,
+                        onTap: enabled
+                            ? () async {
+                                Navigator.pop(sheetCtx);
+                                await onCopyAndOpen(app.url);
+                                HapticFeedback.mediumImpact();
+                              }
+                            : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-      ),
-    ),
+      );
+    },
   );
 }

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/clipboard_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../../domain/usecases/post_usecases.dart';
 import '../../domain/usecases/publish_via_api.dart';
@@ -67,6 +69,8 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
     required this.deletePost,
     required this.publishViaApi,
     required this.clipboard,
+    required this.notificationService,
+    required this.settingsRepository,
   }) : super(const PostListInitial()) {
     on<PostListLoad>(_onLoad);
     on<PostListReload>(_onReload);
@@ -81,6 +85,8 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
   final DeletePost deletePost;
   final PublishViaApi publishViaApi;
   final ClipboardService clipboard;
+  final NotificationService notificationService;
+  final SettingsRepository settingsRepository;
 
   StreamSubscription? _sub;
 
@@ -139,6 +145,17 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
       postId: event.postId,
       platform: event.platform,
     ));
+    result.fold(
+      (f) => _notifyPublishResult(
+        platform: event.platform,
+        isSuccess: false,
+        message: f.message,
+      ),
+      (_) => _notifyPublishResult(
+        platform: event.platform,
+        isSuccess: true,
+      ),
+    );
     final current = state;
     if (current is PostListLoaded) {
       emit(current.copyWith(
@@ -146,6 +163,26 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
         actionMessage: result.fold((f) => f.message, (_) => null),
       ));
     }
+  }
+
+  void _notifyPublishResult({
+    required SocialPlatform platform,
+    required bool isSuccess,
+    String? message,
+  }) {
+    if (!settingsRepository.getSettings().enableNotifications) return;
+    unawaited(
+      notificationService.showPostingResult(
+        title: isSuccess
+            ? 'Posted to ${platform.displayName}'
+            : 'Post failed on ${platform.displayName}',
+        body: message ??
+            (isSuccess
+                ? 'Your post was published successfully.'
+                : 'Publishing did not complete.'),
+        isSuccess: isSuccess,
+      ),
+    );
   }
 
   @override

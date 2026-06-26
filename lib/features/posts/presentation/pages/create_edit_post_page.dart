@@ -121,33 +121,79 @@ class _FormViewState extends State<_FormView> {
       },
       child: BlocBuilder<PostFormCubit, PostFormData>(
         builder: (context, state) {
+          final narrow = MediaQuery.of(context).size.width < 400;
+          final canCopy = state.content.trim().isNotEmpty;
+
           return Scaffold(
             appBar: AppBar(
               title: Text(state.id == null ? 'New Post' : 'Edit Post'),
-              actions: [
-                IconButton(
-                  tooltip: 'Copy content',
-                  icon: const Icon(Icons.copy_rounded),
-                  onPressed: state.content.trim().isEmpty
-                      ? null
-                      : () => cubit.copyContent(context),
-                ),
-                IconButton(
-                  tooltip: 'AI Post Writer',
-                  icon: const Icon(Icons.psychology_rounded),
-                  onPressed: () => _openAiWriter(context, state),
-                ),
-                IconButton(
-                  tooltip: 'Paste AI response',
-                  icon: const Icon(Icons.paste_rounded),
-                  onPressed: () => _pasteAiResponse(context, state, cubit),
-                ),
-                IconButton(
-                  tooltip: 'Insert template',
-                  icon: const Icon(Icons.auto_awesome_rounded),
-                  onPressed: () => _showTemplates(context),
-                ),
-              ],
+              actions: narrow
+                  ? [
+                      PopupMenuButton<String>(
+                        tooltip: 'Actions',
+                        icon: const Icon(Icons.more_vert_rounded),
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'copy':
+                              if (canCopy) cubit.copyContent(context);
+                              break;
+                            case 'ai':
+                              _openAiWriter(context, state);
+                              break;
+                            case 'paste':
+                              _pasteAiResponse(context, state, cubit);
+                              break;
+                            case 'template':
+                              _showTemplates(context);
+                              break;
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'copy',
+                            enabled: canCopy,
+                            child: const Text('Copy content'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'ai',
+                            child: Text('AI Post Writer'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'paste',
+                            child: Text('Paste AI response'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'template',
+                            child: Text('Insert template'),
+                          ),
+                        ],
+                      ),
+                    ]
+                  : [
+                      IconButton(
+                        tooltip: 'Copy content',
+                        icon: const Icon(Icons.copy_rounded),
+                        onPressed: canCopy
+                            ? () => cubit.copyContent(context)
+                            : null,
+                      ),
+                      IconButton(
+                        tooltip: 'AI Post Writer',
+                        icon: const Icon(Icons.psychology_rounded),
+                        onPressed: () => _openAiWriter(context, state),
+                      ),
+                      IconButton(
+                        tooltip: 'Paste AI response',
+                        icon: const Icon(Icons.paste_rounded),
+                        onPressed: () =>
+                            _pasteAiResponse(context, state, cubit),
+                      ),
+                      IconButton(
+                        tooltip: 'Insert template',
+                        icon: const Icon(Icons.auto_awesome_rounded),
+                        onPressed: () => _showTemplates(context),
+                      ),
+                    ],
             ),
             body: ListView(
               padding: const EdgeInsets.all(16),

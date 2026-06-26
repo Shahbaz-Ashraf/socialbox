@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/database/app_database.dart';
+import 'core/network/dio_client.dart';
 import 'core/services/clipboard_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/secure_storage_service.dart';
@@ -16,6 +17,7 @@ import 'features/comment_templates/domain/repositories/comment_repository.dart';
 import 'features/comment_templates/domain/usecases/category_usecases.dart';
 import 'features/comment_templates/domain/usecases/comment_usecases.dart';
 import 'features/comment_templates/domain/usecases/get_all_categories.dart';
+import 'features/comment_templates/domain/usecases/watch_comments.dart';
 import 'features/comment_templates/presentation/cubit/category_cubit.dart';
 import 'features/comment_templates/presentation/cubit/comment_cubit.dart';
 import 'features/hashtags/data/datasources/hashtag_datasource.dart';
@@ -28,22 +30,29 @@ import 'features/posting_log/data/datasources/log_local_datasource.dart';
 import 'features/posting_log/data/repositories/log_repository_impl.dart';
 import 'features/posting_log/domain/repositories/log_repository.dart';
 import 'features/posting_log/domain/usecases/log_usecases.dart';
+import 'features/posting_log/domain/usecases/watch_logs.dart';
 import 'features/posts/data/datasources/post_local_datasource.dart';
+import 'features/posts/data/datasources/post_remote_datasource.dart';
 import 'features/posts/data/repositories/post_repository_impl.dart';
 import 'features/posts/domain/repositories/post_repository.dart';
 import 'features/posts/domain/usecases/post_date_usecases.dart';
 import 'features/posts/domain/usecases/post_usecases.dart';
 import 'features/posts/domain/usecases/publish_via_api.dart';
+import 'features/posts/domain/usecases/watch_posts.dart';
 import 'features/posts/presentation/bloc/post_list_bloc.dart';
+import 'features/posts/presentation/cubit/calendar_cubit.dart';
 import 'features/posts/presentation/cubit/post_detail_cubit.dart';
 import 'features/posts/presentation/cubit/post_form_cubit.dart';
+import 'features/posts/presentation/cubit/post_list_cubit.dart';
 import 'features/posting_log/presentation/cubit/log_cubit.dart';
 import 'features/reminders/data/datasources/reminder_local_datasource.dart';
 import 'features/reminders/data/repositories/reminder_repository_impl.dart';
 import 'features/reminders/domain/repositories/reminder_repository.dart';
 import 'features/reminders/domain/usecases/reminder_date_usecases.dart';
 import 'features/reminders/domain/usecases/reminder_usecases.dart';
+import 'features/reminders/domain/usecases/watch_reminders.dart';
 import 'features/reminders/presentation/bloc/reminder_bloc.dart';
+import 'features/reminders/presentation/cubit/reminder_cubit.dart';
 import 'features/settings/data/datasources/settings_datasource.dart';
 import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/settings/domain/repositories/settings_repository.dart';
@@ -58,6 +67,7 @@ import 'features/social_auth/data/services/oauth_service.dart';
 import 'features/social_auth/domain/repositories/auth_repository.dart';
 import 'features/social_auth/domain/usecases/auth_usecases.dart';
 import 'features/social_auth/presentation/bloc/auth_bloc.dart';
+import 'features/social_auth/presentation/cubit/auth_cubit.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -72,6 +82,7 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton<SharedPreferences>(prefs);
 
   // Core services -----------------------------------------------------
+  getIt.registerLazySingleton<DioClient>(() => DioClient.instance);
   getIt.registerLazySingleton<NotificationService>(() => NotificationService());
   getIt.registerLazySingleton<ClipboardService>(() => ClipboardService());
   getIt.registerLazySingleton<SecureStorageService>(() => SecureStorageService());
@@ -155,6 +166,8 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<RefreshAccessToken>(
       () => RefreshAccessToken(getIt()));
   getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<AuthRepository>()));
+  /// Alternative ViewModel
+  getIt.registerFactory<AuthCubit>(() => AuthCubit(getIt<AuthRepository>()));
 
   // Comment Templates -------------------------------------------------
   getIt.registerLazySingleton<CommentLocalDataSource>(
@@ -175,6 +188,9 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<ToggleFavorite>(() => ToggleFavorite(getIt()));
   getIt.registerFactory<IncrementUsageCount>(
       () => IncrementUsageCount(getIt()));
+  getIt.registerFactory<WatchCategories>(() => WatchCategories(getIt()));
+  getIt.registerFactory<WatchCommentsByCategory>(
+      () => WatchCommentsByCategory(getIt()));
   getIt.registerFactory<CategoryCubit>(() => CategoryCubit(
         repository: getIt(),
         getAllCategories: getIt(),
@@ -205,6 +221,8 @@ Future<void> configureDependencies() async {
   // Posts ------------------------------------------------------------
   getIt.registerLazySingleton<PostLocalDataSource>(
       () => PostLocalDataSource(getIt<AppDatabase>()));
+  getIt.registerLazySingleton<PostRemoteDataSource>(
+      () => PostRemoteDataSource(getIt<DioClient>()));
   getIt.registerLazySingleton<PostRepository>(() => PostRepositoryImpl(
         getIt<PostLocalDataSource>(),
         getIt<LogRepository>(),
@@ -221,9 +239,16 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<GetPostsInRange>(
       () => GetPostsInRange(getIt()));
   getIt.registerFactory<DuplicatePost>(() => DuplicatePost(getIt()));
+  getIt.registerFactory<WatchAllPosts>(() => WatchAllPosts(getIt()));
   getIt.registerFactory<PublishViaApi>(() => PublishViaApi(
         getIt<SettingsRepository>(),
         getIt<AuthRepository>(),
+        getIt<GetPostById>(),
+        getIt<PostRemoteDataSource>(),
+        getIt<CreateLogEntry>(),
+        getIt<LogRepository>(),
+        getIt<PostRepository>(),
+        getIt<NotificationService>(),
       ));
 
   getIt.registerFactoryParam<PostDetailCubit, String, void>(
@@ -235,6 +260,8 @@ Future<void> configureDependencies() async {
       duplicatePost: getIt(),
       publishViaApi: getIt(),
       clipboard: getIt(),
+      notificationService: getIt(),
+      settingsRepository: getIt(),
     ),
   );
   getIt.registerFactory<PostFormCubit>(() => PostFormCubit(
@@ -251,6 +278,20 @@ Future<void> configureDependencies() async {
         deletePost: getIt(),
         publishViaApi: getIt(),
         clipboard: getIt(),
+        notificationService: getIt(),
+        settingsRepository: getIt(),
+      ));
+  /// Alternative ViewModel
+  getIt.registerFactory<PostListCubit>(() => PostListCubit(
+        repository: getIt<PostRepository>(),
+        markPostedManually: getIt(),
+        deletePost: getIt(),
+      ));
+  getIt.registerFactory<CalendarCubit>(() => CalendarCubit(
+        getPostsInRange: getIt(),
+        getRemindersInRange: getIt(),
+        watchAllPosts: getIt(),
+        watchAllReminders: getIt(),
       ));
 
   // Posting Log ------------------------------------------------------
@@ -264,6 +305,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<CreateLogEntry>(() => CreateLogEntry(getIt()));
   getIt.registerFactory<UpdateLogStatus>(() => UpdateLogStatus(getIt()));
   getIt.registerFactory<DeleteLog>(() => DeleteLog(getIt()));
+  getIt.registerFactory<WatchAllLogs>(() => WatchAllLogs(getIt()));
   getIt.registerFactory<LogCubit>(() => LogCubit(
         repository: getIt(),
         updateLogStatus: getIt(),
@@ -285,11 +327,18 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<ToggleReminder>(() => ToggleReminder(getIt()));
   getIt.registerFactory<GetRemindersInRange>(
       () => GetRemindersInRange(getIt()));
+  getIt.registerFactory<WatchAllReminders>(() => WatchAllReminders(getIt()));
   getIt.registerFactory<ReminderBloc>(() => ReminderBloc(
         repository: getIt<ReminderRepository>(),
         notificationService: getIt<NotificationService>(),
         settingsRepository: getIt<SettingsRepository>(),
         getAllPosts: getIt(),
+      ));
+  /// Alternative ViewModel
+  getIt.registerFactory<ReminderCubit>(() => ReminderCubit(
+        repository: getIt<ReminderRepository>(),
+        notificationService: getIt<NotificationService>(),
+        settingsRepository: getIt<SettingsRepository>(),
       ));
 
   // Dashboard ---------------------------------------------------------

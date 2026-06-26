@@ -177,7 +177,7 @@ void main() {
 
     expect(find.text(currentTopic), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ActionChip, 'My Preset'));
+    await tester.tap(find.widgetWithText(FilterChip, 'My Preset'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 

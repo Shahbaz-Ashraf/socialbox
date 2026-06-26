@@ -3,24 +3,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_decorations.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../app/widgets/theme_toggle_button.dart';
-import '../../../../core/utils/date_utils.dart';
-import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../../../injection_container.dart';
+import '../../../comment_templates/domain/usecases/comment_usecases.dart';
 import '../../../ai_prompts/presentation/cubit/ai_prompt_cubit.dart';
 import '../../../ai_prompts/presentation/widgets/dashboard_ai_writer_card.dart';
-import '../../../posting_log/domain/entities/posting_log.dart';
 import '../../../posts/domain/entities/social_post.dart';
-import '../../../reminders/domain/entities/reminder.dart';
-import '../../domain/entities/dashboard_stats.dart';
+import '../../../posts/domain/usecases/post_usecases.dart';
 import '../cubit/dashboard_cubit.dart';
-import '../widgets/dashboard_activity_item.dart';
-import '../widgets/dashboard_list_item.dart';
-import '../widgets/dashboard_section.dart';
+import '../widgets/dashboard_feed_tabs.dart';
 import '../widgets/dashboard_stats_row.dart';
+import '../widgets/global_search_delegate.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -62,7 +58,7 @@ class _DashboardView extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(state.message),
                   const SizedBox(height: 12),
-                  ElevatedButton(
+                  FilledButton(
                     onPressed: () => context.read<DashboardCubit>().load(),
                     child: const Text('Retry'),
                   ),
@@ -73,48 +69,53 @@ class _DashboardView extends StatelessWidget {
           if (state is DashboardLoaded) {
             return RefreshIndicator(
               onRefresh: () => context.read<DashboardCubit>().load(),
-              edgeOffset: 140,
+              edgeOffset: kToolbarHeight,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  SliverToBoxAdapter(
-                    child: _DashboardHeroWithStats(
-                      isRefreshing: state.isRefreshing,
-                      stats: state.stats,
-                      onRefresh: () => context.read<DashboardCubit>().load(),
-                      onOpenStudio: () {
-                        final cubit = context.read<AiPromptCubit>();
-                        cubit.flushPersist();
-                        context.pushNamed(
-                          RouteNames.aiPromptStudio,
-                          extra: cubit,
-                        );
-                      },
-                    ),
+                  SliverAppBar(
+                    pinned: true,
+                    elevation: 0,
+                    scrolledUnderElevation: 0.5,
+                    backgroundColor:
+                        Theme.of(context).scaffoldBackgroundColor,
+                    surfaceTintColor: Colors.transparent,
+                    title: _DashboardTitle(isRefreshing: state.isRefreshing),
+                    actions: [
+                      _DashboardToolbar(
+                        isRefreshing: state.isRefreshing,
+                        onRefresh: () => context.read<DashboardCubit>().load(),
+                        onOpenStudio: () {
+                          final cubit = context.read<AiPromptCubit>();
+                          cubit.flushPersist();
+                          context.pushNamed(
+                            RouteNames.aiPromptStudio,
+                            extra: cubit,
+                          );
+                        },
+                        onSearch: () => _DashboardToolbar.openGlobalSearch(
+                          context,
+                        ),
+                      ),
+                    ],
                   ),
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 100),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        const _QuickActions(),
-                        const SizedBox(height: 16),
                         const DashboardAiWriterCard(),
-                        const SizedBox(height: 16),
-                        _UpcomingPosts(posts: state.stats.upcomingPosts),
-                        const SizedBox(height: 16),
-                        _UpcomingReminders(
+                        const SizedBox(height: 12),
+                        DashboardStatsRow(stats: state.stats),
+                        const SizedBox(height: 12),
+                        const _QuickActions(),
+                        const SizedBox(height: 12),
+                        DashboardFeedTabs(
+                          posts: state.stats.upcomingPosts,
                           reminders: state.stats.upcomingReminders,
-                        ),
-                        const SizedBox(height: 16),
-                        _RecentActivity(
                           logs: state.stats.recentActivity,
-                          onCopyUrl: context.read<DashboardCubit>().copyLogUrl,
+                          onCopyUrl:
+                              context.read<DashboardCubit>().copyLogUrl,
                         ),
-                        const SizedBox(height: 16),
-                        _PlatformBreakdown(
-                          counts: state.stats.platformCounts,
-                        ),
-                        const SizedBox(height: 24),
                       ]),
                     ),
                   ),
@@ -129,379 +130,148 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
-class _DashboardHeroWithStats extends StatelessWidget {
-  const _DashboardHeroWithStats({
-    required this.isRefreshing,
-    required this.stats,
-    required this.onRefresh,
-    required this.onOpenStudio,
-  });
+class _DashboardTitle extends StatelessWidget {
+  const _DashboardTitle({required this.isRefreshing});
 
   final bool isRefreshing;
-  final DashboardStats stats;
-  final VoidCallback onRefresh;
-  final VoidCallback onOpenStudio;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
+    final theme = Theme.of(context);
+
+    return Row(
       children: [
-        _DashboardHero(
-          isRefreshing: isRefreshing,
-          onRefresh: onRefresh,
-          onOpenStudio: onOpenStudio,
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: AppDecorations.accentHeader(context),
+          child: Icon(
+            Icons.dashboard_rounded,
+            size: 20,
+            color: theme.colorScheme.primary,
+          ),
         ),
-        Positioned(
-          left: 20,
-          right: 20,
-          bottom: -48,
-          child: DashboardStatsRow(stats: stats),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Home',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              Text(
+                isRefreshing ? 'Syncing…' : 'Your content hub',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _UpcomingPosts extends StatelessWidget {
-  const _UpcomingPosts({required this.posts});
-  final List<SocialPost> posts;
-
-  @override
-  Widget build(BuildContext context) {
-    return DashboardSection(
-      title: 'Upcoming Posts',
-      icon: Icons.schedule_rounded,
-      child: posts.isEmpty
-          ? DashboardEmptyState(
-              message: 'No scheduled posts yet.',
-              actionLabel: 'Create a post',
-              onAction: () => context.pushNamed(RouteNames.createPost),
-            )
-          : Column(
-              children: posts
-                  .map(
-                    (p) => DashboardListItem(
-                      icon: Icons.schedule_outlined,
-                      iconColor: AppColors.statScheduled,
-                      title: p.title,
-                      subtitle: AppDateUtils.formatRelative(p.scheduledAt!),
-                      onTap: () => context.pushNamed(
-                        RouteNames.postDetail,
-                        pathParameters: {'id': p.id},
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-    );
-  }
-}
-
-class _UpcomingReminders extends StatelessWidget {
-  const _UpcomingReminders({required this.reminders});
-  final List<Reminder> reminders;
-
-  @override
-  Widget build(BuildContext context) {
-    return DashboardSection(
-      title: 'Upcoming Reminders',
-      icon: Icons.notifications_active_rounded,
-      child: reminders.isEmpty
-          ? DashboardEmptyState(
-              message: 'No upcoming reminders.',
-              actionLabel: 'Manage reminders',
-              onAction: () => context.pushNamed(RouteNames.reminders),
-            )
-          : Column(
-              children: reminders
-                  .map(
-                    (r) => DashboardListItem(
-                      icon: r.repeat.icon,
-                      iconColor: r.repeat.color,
-                      title: r.title,
-                      subtitle: AppDateUtils.formatRelative(r.scheduledAt),
-                      showChevron: false,
-                    ),
-                  )
-                  .toList(),
-            ),
-    );
-  }
-}
-
-class _RecentActivity extends StatelessWidget {
-  const _RecentActivity({required this.logs, required this.onCopyUrl});
-  final List<PostingLog> logs;
-  final void Function(BuildContext context, String url) onCopyUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return DashboardSection(
-      title: 'Recent Activity',
-      icon: Icons.history_rounded,
-      trailing: logs.isNotEmpty
-          ? TextButton(
-              onPressed: () => context.go('/logs'),
-              child: const Text('View all'),
-            )
-          : null,
-      child: logs.isEmpty
-          ? DashboardEmptyState(
-              message: 'No recent activity.',
-              actionLabel: 'View all logs',
-              onAction: () => context.go('/logs'),
-            )
-          : Column(
-              children: logs
-                  .map(
-                    (l) => DashboardActivityItem(
-                      log: l,
-                      onCopyUrl: onCopyUrl,
-                    ),
-                  )
-                  .toList(),
-            ),
-    );
-  }
-}
-
-class _PlatformBreakdown extends StatelessWidget {
-  const _PlatformBreakdown({required this.counts});
-  final Map<String, int> counts;
-
-  @override
-  Widget build(BuildContext context) {
-    if (counts.isEmpty) return const SizedBox.shrink();
-    final total = counts.values.fold<int>(0, (s, v) => s + v);
-    final theme = Theme.of(context);
-
-    return DashboardSection(
-      title: 'Platform Mix',
-      icon: Icons.pie_chart_outline_rounded,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: counts.entries.map((e) {
-          final plat = SocialPlatformX.fromName(e.key) ?? SocialPlatform.twitter;
-          final pct = total == 0 ? 0.0 : e.value / total;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: AppDecorations.iconBadge(plat.color),
-                      child: Icon(plat.icon, color: plat.color, size: 16),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      plat.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(fontSize: 13),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${e.value}',
-                      style: AppTextStyles.subtitle.copyWith(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      ' · ${(pct * 100).toStringAsFixed(0)}%',
-                      style: AppTextStyles.caption.copyWith(
-                        color: theme.hintColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(8),
-                    backgroundColor:
-                        theme.dividerColor.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation(plat.color),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _DashboardHero extends StatelessWidget {
-  const _DashboardHero({
+class _DashboardToolbar extends StatelessWidget {
+  const _DashboardToolbar({
     required this.isRefreshing,
     required this.onRefresh,
     required this.onOpenStudio,
+    required this.onSearch,
   });
 
   final bool isRefreshing;
   final VoidCallback onRefresh;
   final VoidCallback onOpenStudio;
+  final VoidCallback onSearch;
 
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<AppThemeTokens>() ??
-        AppThemeTokens.light();
-    final topPad = MediaQuery.paddingOf(context).top;
-    final greeting = _greetingForTime();
+  static void openGlobalSearch(BuildContext context) {
+    final getAllPosts = getIt<GetAllPosts>();
+    final searchComments = getIt<SearchComments>();
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: tokens.heroGradient,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: -30,
-            right: -20,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: AppDecorations.heroOrb(Colors.white, opacity: 0.08),
-            ),
-          ),
-          Positioned(
-            bottom: 60,
-            left: -40,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: AppDecorations.heroOrb(
-                AppColors.secondaryLight,
-                opacity: 0.15,
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 72),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            greeting,
-                            style: AppTextStyles.heroGreeting(context),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'SocialBox',
-                            style: AppTextStyles.heroTitle(context),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your content command center',
-                            style: AppTextStyles.onGradient(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _HeroIconButton(
-                      tooltip: 'Toggle theme',
-                      decoration: AppDecorations.glassButton(),
-                      child: const ThemeToggleButton(iconColor: Colors.white),
-                    ),
-                    if (isRefreshing)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 6),
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      _HeroIconButton(
-                        tooltip: 'Refresh',
-                        icon: Icons.refresh_rounded,
-                        onPressed: onRefresh,
-                      ),
-                    _HeroIconButton(
-                      tooltip: 'AI Writer',
-                      icon: Icons.auto_awesome_rounded,
-                      onPressed: onOpenStudio,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+    showSearch(
+      context: context,
+      delegate: GlobalSearchDelegate(
+        searchPosts: (query) async {
+          final result = await getAllPosts(const NoParams());
+          return result.fold((_) => const <SocialPost>[], (posts) {
+            final q = query.toLowerCase();
+            return posts
+                .where(
+                  (p) =>
+                      p.title.toLowerCase().contains(q) ||
+                      p.content.toLowerCase().contains(q),
+                )
+                .toList();
+          });
+        },
+        searchComments: (query) async {
+          final result = await searchComments(query);
+          return result.fold((_) => const [], (comments) => comments);
+        },
       ),
     );
   }
 
-  static String _greetingForTime() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-}
-
-class _HeroIconButton extends StatelessWidget {
-  const _HeroIconButton({
-    required this.tooltip,
-    this.icon,
-    this.onPressed,
-    this.child,
-    this.decoration,
-  });
-
-  final String tooltip;
-  final IconData? icon;
-  final VoidCallback? onPressed;
-  final Widget? child;
-  final BoxDecoration? decoration;
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 6),
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(12),
-            child: Ink(
-              width: 40,
-              height: 40,
-              decoration: decoration ?? AppDecorations.glassButton(),
-              child: child ??
-                  Icon(icon, color: Colors.white, size: 20),
-            ),
+    final narrow = MediaQuery.sizeOf(context).width < 400;
+
+    if (narrow) {
+      return PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert_rounded),
+        onSelected: (value) => switch (value) {
+          'search' => onSearch(),
+          'refresh' => onRefresh(),
+          'ai' => onOpenStudio(),
+          _ => null,
+        },
+        itemBuilder: (_) => [
+          const PopupMenuItem(value: 'search', child: Text('Search')),
+          PopupMenuItem(
+            value: 'refresh',
+            enabled: !isRefreshing,
+            child: Text(isRefreshing ? 'Syncing…' : 'Refresh'),
           ),
+          const PopupMenuItem(value: 'ai', child: Text('AI Studio')),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: 'Search',
+          icon: const Icon(Icons.search_rounded),
+          onPressed: onSearch,
         ),
-      ),
+        const ThemeToggleButton(),
+        if (isRefreshing)
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        else
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: onRefresh,
+          ),
+        IconButton(
+          tooltip: 'AI Studio',
+          icon: const Icon(Icons.auto_awesome_outlined),
+          onPressed: onOpenStudio,
+        ),
+      ],
     );
   }
 }
@@ -511,25 +281,37 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final theme = Theme.of(context);
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Expanded(
-          child: _ActionCard(
-            icon: Icons.add_circle_outline_rounded,
-            label: 'New Post',
-            subtitle: 'Create manually',
-            accentColor: AppColors.statScheduled,
-            onTap: () => context.pushNamed(RouteNames.createPost),
-          ),
+        _ActionChip(
+          icon: Icons.add_rounded,
+          label: 'New post',
+          onTap: () => context.pushNamed(RouteNames.createPost),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ActionCard(
-            icon: Icons.calendar_today_rounded,
-            label: 'Calendar',
-            subtitle: 'Schedule view',
-            accentColor: AppColors.accentViolet,
-            onTap: () => context.go('/calendar'),
+        _ActionChip(
+          icon: Icons.calendar_today_rounded,
+          label: 'Calendar',
+          onTap: () => context.go('/calendar'),
+        ),
+        _ActionChip(
+          icon: Icons.history_rounded,
+          label: 'Logs',
+          onTap: () => context.go('/logs'),
+        ),
+        _ActionChip(
+          icon: Icons.send_rounded,
+          label: 'Posts',
+          onTap: () => context.go('/posts'),
+          outlined: true,
+        ),
+        Text(
+          'Swipe metrics for more',
+          style: AppTextStyles.caption.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           ),
         ),
       ],
@@ -537,59 +319,48 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
+class _ActionChip extends StatelessWidget {
+  const _ActionChip({
     required this.icon,
     required this.label,
-    required this.subtitle,
-    required this.accentColor,
     required this.onTap,
+    this.outlined = false,
   });
 
   final IconData icon;
   final String label;
-  final String subtitle;
-  final Color accentColor;
   final VoidCallback onTap;
+  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16),
+        const SizedBox(width: 6),
+        Text(label),
+      ],
+    );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          decoration: AppDecorations.surfaceCard(context),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: AppDecorations.iconBadge(accentColor),
-                  child: Icon(icon, color: accentColor, size: 22),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 14),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.caption.copyWith(
-                    color: theme.hintColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
+    if (outlined) {
+      return OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
+        child: child,
+      );
+    }
+
+    return FilledButton.tonal(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
+      child: child,
     );
   }
 }

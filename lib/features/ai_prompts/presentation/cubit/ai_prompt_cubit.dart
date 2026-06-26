@@ -60,34 +60,66 @@ class AiPromptCubit extends Cubit<AiPromptState> {
     required ClipboardService clipboard,
     PromptConfig? initialConfig,
   })  : _repository = repository,
+        _loadLastConfig = loadLastConfig,
         _saveLastConfig = saveLastConfig,
-        _clipboard = clipboard,
+        _loadTemplate = loadTemplate,
         _saveTemplate = saveTemplate,
         _resetTemplate = resetTemplate,
+        _loadPresets = loadPresets,
         _savePresets = savePresets,
+        _clipboard = clipboard,
         super(AiPromptState(
-          config: sanitizePromptConfig(
-              initialConfig ?? repository.loadLastConfig()),
-          template: repository.loadTemplate(),
-          presets: repository
-              .loadPresets()
-              .map((p) => PromptPreset(
-                    id: p.id,
-                    name: p.name,
-                    config: sanitizePromptConfig(p.config),
-                  ))
-              .toList(),
-        ));
+          config: sanitizePromptConfig(initialConfig ?? const PromptConfig()),
+          template: '',
+          presets: const [],
+        )) {
+    _init(initialConfig: initialConfig);
+  }
 
   final PromptRepository _repository;
+  final LoadLastPromptConfig _loadLastConfig;
   final SaveLastPromptConfig _saveLastConfig;
+  final LoadPromptTemplate _loadTemplate;
   final SavePromptTemplate _saveTemplate;
   final ResetPromptTemplate _resetTemplate;
+  final LoadPromptPresets _loadPresets;
   final SavePromptPresets _savePresets;
   final ClipboardService _clipboard;
   final PromptBuilder _builder = const PromptBuilder();
   Timer? _persistDebounce;
   PromptConfig? _pendingPersist;
+
+  Future<void> _init({PromptConfig? initialConfig}) async {
+    var config = state.config;
+    if (initialConfig != null) {
+      config = sanitizePromptConfig(initialConfig);
+    } else {
+      final configResult = await _loadLastConfig(const NoParams());
+      config = configResult.fold((_) => config, sanitizePromptConfig);
+    }
+
+    final templateResult = await _loadTemplate(const NoParams());
+    final template = templateResult.fold((_) => state.template, (t) => t);
+
+    final presetsResult = await _loadPresets(const NoParams());
+    final presets = presetsResult.fold(
+      (_) => state.presets,
+      (list) => list
+          .map((p) => PromptPreset(
+                id: p.id,
+                name: p.name,
+                config: sanitizePromptConfig(p.config),
+              ))
+          .toList(),
+    );
+
+    if (isClosed) return;
+    emit(state.copyWith(
+      config: config,
+      template: template,
+      presets: presets,
+    ));
+  }
 
   void updateConfig(PromptConfig config) {
     final safe = sanitizePromptConfig(config);

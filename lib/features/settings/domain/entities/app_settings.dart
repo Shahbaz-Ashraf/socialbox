@@ -11,6 +11,12 @@ class AppSettings extends Equatable {
     this.enableApiPosting = false,
     this.reminderLeadMinutes = 15,
     this.autoRefreshTokens = true,
+    this.fbAppId,
+    this.fbAppSecret,
+    this.liClientId,
+    this.liClientSecret,
+    this.twClientId,
+    this.twClientSecret,
   });
 
   final AppThemeMode themeMode;
@@ -19,6 +25,12 @@ class AppSettings extends Equatable {
   final bool enableApiPosting;
   final int reminderLeadMinutes;
   final bool autoRefreshTokens;
+  final String? fbAppId;
+  final String? fbAppSecret;
+  final String? liClientId;
+  final String? liClientSecret;
+  final String? twClientId;
+  final String? twClientSecret;
 
   AppSettings copyWith({
     AppThemeMode? themeMode,
@@ -27,6 +39,12 @@ class AppSettings extends Equatable {
     bool? enableApiPosting,
     int? reminderLeadMinutes,
     bool? autoRefreshTokens,
+    String? fbAppId,
+    String? fbAppSecret,
+    String? liClientId,
+    String? liClientSecret,
+    String? twClientId,
+    String? twClientSecret,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -36,6 +54,12 @@ class AppSettings extends Equatable {
         reminderLeadMinutes:
             reminderLeadMinutes ?? this.reminderLeadMinutes,
         autoRefreshTokens: autoRefreshTokens ?? this.autoRefreshTokens,
+        fbAppId: fbAppId ?? this.fbAppId,
+        fbAppSecret: fbAppSecret ?? this.fbAppSecret,
+        liClientId: liClientId ?? this.liClientId,
+        liClientSecret: liClientSecret ?? this.liClientSecret,
+        twClientId: twClientId ?? this.twClientId,
+        twClientSecret: twClientSecret ?? this.twClientSecret,
       );
 
   @override
@@ -46,5 +70,11 @@ class AppSettings extends Equatable {
         enableApiPosting,
         reminderLeadMinutes,
         autoRefreshTokens,
+        fbAppId,
+        fbAppSecret,
+        liClientId,
+        liClientSecret,
+        twClientId,
+        twClientSecret,
       ];
 }

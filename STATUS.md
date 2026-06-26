@@ -1,7 +1,7 @@
 # Session Status — SocialBox
 
 **Last updated:** 2026-06-26  
-**App state:** `flutter analyze` — **0 errors** (6 info-level lints). Current roadmap plan **complete** on `main` (pending commit of multi-agent pass).  
+**App state:** `flutter analyze` — **0 issues**. Agent 6 quality pass complete (const lints fixed, 2 widget tests added, docs synced).  
 **Full inventory:** See `features.md` (current roadmap ~100% · 2027 items deferred)
 
 ### Architecture policy (all sessions)
@@ -30,7 +30,13 @@
 | Reminder post-picker + prefill from create-post | **Done** |
 | Notification deep link (`main.dart` → `/posts/:id`) | **Done** |
 | `PublishViaApi` gated stub | **Done** |
-| OAuth profile enrichment (Twitter/LinkedIn) | **Done** (needs real credentials to verify on device) |
+| OAuth profile enrichment (Twitter/LinkedIn) | **Done** — LinkedIn `_fetchLinkedInProfile` wired (needs device credentials test) |
+| WorkManager + `BackgroundService` | **Done** |
+| `PostRemoteDataSource` + `PublishViaApi` | **Done** |
+| Global search (`GlobalSearchDelegate`) | **Done** |
+| OAuth client ID settings fields | **Done** |
+| `/logs` from Settings + Dashboard | **Done** |
+| Widget tests (`dashboard_stats_row`, `log_tile`) | **Done** |
 | `AppBlocObserver` | **Done** |
 
 ---
@@ -62,9 +68,9 @@ flutter run -d <device_id>
 
 | Area | Items |
 |------|-------|
-| API auto-posting | `PostRemoteDataSource`, Dio interceptor, WorkManager executor, recurring post auto-create |
+| API auto-posting | Recurring post auto-create executor |
 | OAuth polish | Facebook page picker, production credential testing |
-| Polish | Lottie empty states, shimmer on all pages, app icon + splash, unit/widget tests |
+| Polish | Lottie empty states, shimmer on all pages, app icon + splash, broader test coverage |
 | Platform | Windows `main_windows.dart`, cloud sync, new platforms (Instagram, TikTok) |
 
 ---
@@ -84,7 +90,7 @@ flutter run -d <device_id>
 
 - `OnBackInvokedCallback` not enabled in manifest (Android 13+ back gesture warning)
 - Impeller/Vulkan GPU warnings on some devices
-- 6 analyzer info-level lints (`prefer_const_constructors`, `avoid_types_as_parameter_names`)
+- ~~6 analyzer info-level lints~~ — **resolved** (`flutter analyze` 0 issues)
 - `copy_feedback_snackbar.dart` spec widget never created (logic in `ClipboardService`)
 - Export CSV uses `Share.share` only (no clipboard export)
 

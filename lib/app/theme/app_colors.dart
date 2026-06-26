@@ -94,9 +94,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   final Color accentBorder;
 
   static AppThemeTokens light() {
-    return AppThemeTokens(
+    return const AppThemeTokens(
       brandGradient: AppColors.brandGradient,
-      cardShadow: const [
+      cardShadow: [
         BoxShadow(
           color: Color(0x0A0F172A),
           blurRadius: 20,
@@ -108,34 +108,34 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
           offset: Offset(0, 1),
         ),
       ],
-      heroGradient: const LinearGradient(
+      heroGradient: LinearGradient(
         colors: [Color(0xFF4F46E5), Color(0xFF6366F1), Color(0xFF7C3AED)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         stops: [0.0, 0.45, 1.0],
       ),
       navBarBackground: Colors.white,
-      accentBorder: const Color(0xFFE8ECF4),
+      accentBorder: Color(0xFFE8ECF4),
     );
   }
 
   static AppThemeTokens dark() {
-    return AppThemeTokens(
+    return const AppThemeTokens(
       brandGradient: AppColors.brandGradientDark,
-      cardShadow: const [
+      cardShadow: [
         BoxShadow(
           color: Color(0x40000000),
           blurRadius: 20,
           offset: Offset(0, 6),
         ),
       ],
-      heroGradient: const LinearGradient(
+      heroGradient: LinearGradient(
         colors: [Color(0xFF312E81), Color(0xFF4C1D95)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      navBarBackground: const Color(0xFF16161E),
-      accentBorder: const Color(0xFF2D2D3D),
+      navBarBackground: Color(0xFF16161E),
+      accentBorder: Color(0xFF2D2D3D),
     );
   }
 

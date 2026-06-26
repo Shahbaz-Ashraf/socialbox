@@ -92,7 +92,7 @@ class AppTheme {
         fontSize: 12,
         color: colorScheme.onSurface.withValues(alpha: 0.55),
       ),
-      labelLarge: TextStyle(
+      labelLarge: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.1,

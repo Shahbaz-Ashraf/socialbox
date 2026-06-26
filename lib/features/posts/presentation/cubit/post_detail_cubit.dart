@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/clipboard_service.dart';
-
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../domain/entities/social_post.dart';
 import '../../domain/usecases/post_date_usecases.dart';
 import '../../domain/usecases/post_usecases.dart';
@@ -58,12 +61,16 @@ class PostDetailCubit extends Cubit<PostDetailState> {
     required DuplicatePost duplicatePost,
     required PublishViaApi publishViaApi,
     required ClipboardService clipboard,
+    required NotificationService notificationService,
+    required SettingsRepository settingsRepository,
   })  : _getPostById = getPostById,
         _markPostedManually = markPostedManually,
         _deletePost = deletePost,
         _duplicatePost = duplicatePost,
         _publishViaApi = publishViaApi,
         _clipboard = clipboard,
+        _notificationService = notificationService,
+        _settingsRepository = settingsRepository,
         super(const PostDetailInitial());
 
   final String postId;
@@ -73,6 +80,8 @@ class PostDetailCubit extends Cubit<PostDetailState> {
   final DuplicatePost _duplicatePost;
   final PublishViaApi _publishViaApi;
   final ClipboardService _clipboard;
+  final NotificationService _notificationService;
+  final SettingsRepository _settingsRepository;
 
   Future<void> load() async {
     emit(const PostDetailLoading());
@@ -93,13 +102,39 @@ class PostDetailCubit extends Cubit<PostDetailState> {
     ));
     return r.fold(
       (f) {
+        _notifyPublishResult(
+          platform: platform,
+          isSuccess: false,
+          message: f.message,
+        );
         emit(PostDetailLoaded(current.post));
         return f.message;
       },
       (_) async {
+        _notifyPublishResult(platform: platform, isSuccess: true);
         await load();
         return null;
       },
+    );
+  }
+
+  void _notifyPublishResult({
+    required SocialPlatform platform,
+    required bool isSuccess,
+    String? message,
+  }) {
+    if (!_settingsRepository.getSettings().enableNotifications) return;
+    unawaited(
+      _notificationService.showPostingResult(
+        title: isSuccess
+            ? 'Posted to ${platform.displayName}'
+            : 'Post failed on ${platform.displayName}',
+        body: message ??
+            (isSuccess
+                ? 'Your post was published successfully.'
+                : 'Publishing did not complete.'),
+        isSuccess: isSuccess,
+      ),
     );
   }
 

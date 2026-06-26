@@ -49,14 +49,16 @@ class LogTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final narrow = constraints.maxWidth < 260;
+                      final platformName = Text(
                         log.platform.displayName,
                         style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                      final statusBadge = GestureDetector(
                         onTap: onStatusChanged == null
                             ? null
                             : () => _showStatusMenu(context),
@@ -86,20 +88,52 @@ class LogTile extends StatelessWidget {
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Row(
+                      );
+                      final methodLabel = Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(log.method.icon,
                               size: 12, color: Colors.grey),
                           const SizedBox(width: 2),
-                          Text(log.method.label,
+                          Flexible(
+                            child: Text(
+                              log.method.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
+                                  fontSize: 10, color: Colors.grey),
+                            ),
+                          ),
                         ],
-                      ),
-                    ],
+                      );
+
+                      if (narrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(child: platformName),
+                                const SizedBox(width: 8),
+                                statusBadge,
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            methodLabel,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          Flexible(child: platformName),
+                          const SizedBox(width: 8),
+                          statusBadge,
+                          const SizedBox(width: 6),
+                          Flexible(child: methodLabel),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 4),
                   Text(

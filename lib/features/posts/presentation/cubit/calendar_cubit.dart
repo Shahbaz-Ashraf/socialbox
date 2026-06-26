@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/domain/date_range.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/social_post.dart';
-import '../../domain/repositories/post_repository.dart';
+import '../../domain/usecases/post_date_usecases.dart';
+import '../../domain/usecases/watch_posts.dart';
 import '../../../reminders/domain/entities/reminder.dart';
-import '../../../reminders/domain/repositories/reminder_repository.dart';
+import '../../../reminders/domain/usecases/reminder_date_usecases.dart';
+import '../../../reminders/domain/usecases/watch_reminders.dart';
 
 class CalendarDay extends Equatable {
   const CalendarDay({required this.date, required this.posts, required this.reminders});
@@ -49,9 +53,15 @@ class CalendarState extends Equatable {
 
 class CalendarCubit extends Cubit<CalendarState> {
   CalendarCubit({
-    required this.postRepository,
-    required this.reminderRepository,
-  }) : super(CalendarState(
+    required GetPostsInRange getPostsInRange,
+    required GetRemindersInRange getRemindersInRange,
+    required WatchAllPosts watchAllPosts,
+    required WatchAllReminders watchAllReminders,
+  })  : _getPostsInRange = getPostsInRange,
+        _getRemindersInRange = getRemindersInRange,
+        _watchAllPosts = watchAllPosts,
+        _watchAllReminders = watchAllReminders,
+        super(CalendarState(
           focusedMonth: DateTime(
             DateTime.now().year,
             DateTime.now().month,
@@ -60,8 +70,10 @@ class CalendarCubit extends Cubit<CalendarState> {
           selectedDate: DateTime.now(),
         ));
 
-  final PostRepository postRepository;
-  final ReminderRepository reminderRepository;
+  final GetPostsInRange _getPostsInRange;
+  final GetRemindersInRange _getRemindersInRange;
+  final WatchAllPosts _watchAllPosts;
+  final WatchAllReminders _watchAllReminders;
 
   StreamSubscription? _postsSub;
   StreamSubscription? _remindersSub;
@@ -69,9 +81,9 @@ class CalendarCubit extends Cubit<CalendarState> {
   void start() {
     _postsSub?.cancel();
     _remindersSub?.cancel();
-    _postsSub = postRepository.watchAllPosts().listen((_) => _refresh());
+    _postsSub = _watchAllPosts(const NoParams()).listen((_) => _refresh());
     _remindersSub =
-        reminderRepository.watchAll().listen((_) => _refresh());
+        _watchAllReminders(const NoParams()).listen((_) => _refresh());
   }
 
   void selectDate(DateTime date) {
@@ -92,9 +104,10 @@ class CalendarCubit extends Cubit<CalendarState> {
     emit(state.copyWith(loading: true));
     final start = DateTime(month.year, month.month, 1);
     final end = DateTime(month.year, month.month + 1, 1);
+    final range = DateRange(start: start, end: end);
 
-    final posts = await postRepository.getAllPosts();
-    final reminders = await reminderRepository.getAll();
+    final posts = await _getPostsInRange(range);
+    final reminders = await _getRemindersInRange(range);
 
     final days = <DateTime, CalendarDay>{};
 
@@ -102,7 +115,6 @@ class CalendarCubit extends Cubit<CalendarState> {
       for (final p in list) {
         final s = p.scheduledAt;
         if (s == null) continue;
-        if (s.isBefore(start) || !s.isBefore(end)) continue;
         final key = DateTime(s.year, s.month, s.day);
         final cur = days[key] ??
             CalendarDay(date: key, posts: const [], reminders: const []);
@@ -116,7 +128,6 @@ class CalendarCubit extends Cubit<CalendarState> {
     reminders.fold((_) {}, (list) {
       for (final r in list) {
         final s = r.scheduledAt;
-        if (s.isBefore(start) || !s.isBefore(end)) continue;
         final key = DateTime(s.year, s.month, s.day);
         final cur = days[key] ??
             CalendarDay(date: key, posts: const [], reminders: const []);

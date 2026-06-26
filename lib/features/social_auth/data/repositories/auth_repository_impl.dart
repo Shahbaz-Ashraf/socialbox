@@ -5,6 +5,7 @@ import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../domain/entities/connected_account.dart';
+import '../../domain/entities/facebook_page.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/social_auth_datasource.dart';
 import '../services/oauth_service.dart';
@@ -69,8 +70,57 @@ class AuthRepositoryImpl implements AuthRepository {
       if (token == null) {
         return const Left(AuthFailure(message: 'OAuth flow did not complete.'));
       }
-      final enriched = await _enrichAndSave(platform, token);
+      var enriched = await _enrichAndSave(platform, token);
+      if (platform == SocialPlatform.facebook && enriched.pageId == null) {
+        final pages = await _oauth.fetchFacebookPages(enriched.accessToken);
+        if (pages.length == 1) {
+          enriched = await _enrichAndSave(
+            platform,
+            _oauth.applyFacebookPage(enriched, page: pages.first),
+          );
+        }
+      }
       return Right(ConnectedAccount.fromToken(platform, enriched));
+    } catch (e) {
+      return Left(AuthFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<FacebookPage>>> getFacebookPages() async {
+    try {
+      final stored = await _ds.getToken(SocialPlatform.facebook);
+      if (stored == null || !stored.isConnected) {
+        return const Left(
+          NotFoundFailure(message: 'Facebook is not connected.'),
+        );
+      }
+      final pages = await _oauth.fetchFacebookPages(stored.accessToken);
+      if (pages.isEmpty) {
+        return const Left(
+          AuthFailure(message: 'No Facebook pages found for this account.'),
+        );
+      }
+      return Right(pages);
+    } catch (e) {
+      return Left(AuthFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ConnectedAccount>> selectFacebookPage(
+    FacebookPage page,
+  ) async {
+    try {
+      final stored = await _ds.getToken(SocialPlatform.facebook);
+      if (stored == null || !stored.isConnected) {
+        return const Left(
+          NotFoundFailure(message: 'Facebook is not connected.'),
+        );
+      }
+      final updated = _oauth.applyFacebookPage(stored, page: page);
+      final enriched = await _enrichAndSave(SocialPlatform.facebook, updated);
+      return Right(ConnectedAccount.fromToken(SocialPlatform.facebook, enriched));
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
     }
@@ -87,12 +137,40 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<String?> getClientId(SocialPlatform platform) =>
-      _ds.clientIdFor(platform);
+  Future<String?> getClientId(SocialPlatform platform) async {
+    final fromSettings = _clientIdFromSettings(platform);
+    if (fromSettings != null && fromSettings.isNotEmpty) {
+      return fromSettings;
+    }
+    return _ds.clientIdFor(platform);
+  }
 
   @override
-  Future<String?> getClientSecret(SocialPlatform platform) =>
-      _ds.clientSecretFor(platform);
+  Future<String?> getClientSecret(SocialPlatform platform) async {
+    final fromSettings = _clientSecretFromSettings(platform);
+    if (fromSettings != null && fromSettings.isNotEmpty) {
+      return fromSettings;
+    }
+    return _ds.clientSecretFor(platform);
+  }
+
+  String? _clientIdFromSettings(SocialPlatform platform) {
+    final s = _settings.getSettings();
+    return switch (platform) {
+      SocialPlatform.facebook => s.fbAppId,
+      SocialPlatform.linkedin => s.liClientId,
+      SocialPlatform.twitter => s.twClientId,
+    };
+  }
+
+  String? _clientSecretFromSettings(SocialPlatform platform) {
+    final s = _settings.getSettings();
+    return switch (platform) {
+      SocialPlatform.facebook => s.fbAppSecret,
+      SocialPlatform.linkedin => s.liClientSecret,
+      SocialPlatform.twitter => s.twClientSecret,
+    };
+  }
 
   @override
   Future<Either<Failure, Unit>> saveCredentials(

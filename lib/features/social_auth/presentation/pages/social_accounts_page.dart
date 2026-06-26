@@ -5,6 +5,7 @@ import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/connected_account.dart';
+import '../../domain/entities/facebook_page.dart';
 import '../bloc/auth_bloc.dart';
 import '../widgets/platform_account_tile.dart';
 
@@ -28,9 +29,14 @@ class _AccountsView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Connected Accounts')),
       body: BlocConsumer<AuthBloc, AuthState>(
-        listenWhen: (a, b) => b is AuthConnected || b is AuthFailureState,
+        listenWhen: (a, b) =>
+            b is AuthConnected ||
+            b is AuthFailureState ||
+            b is AuthFacebookPagePicker,
         listener: (context, state) {
-          if (state is AuthConnected) {
+          if (state is AuthFacebookPagePicker) {
+            _showFacebookPagePicker(context, state.pages);
+          } else if (state is AuthConnected) {
             AppSnackbar.success(
               context,
               'Connected to ${state.account.platform.displayName}',
@@ -84,9 +90,53 @@ class _AccountsView extends StatelessWidget {
       AuthLoaded(:final accounts) => accounts,
       AuthConnected(:final allAccounts) => allAccounts,
       AuthFailureState(:final allAccounts) => allAccounts,
+      AuthFacebookPagePicker(:final allAccounts) => allAccounts,
       _ => const <ConnectedAccount>[],
     };
     return {for (final a in list) a.platform: a};
+  }
+
+  Future<void> _showFacebookPagePicker(
+    BuildContext context,
+    List<FacebookPage> pages,
+  ) async {
+    final selected = await showModalBottomSheet<FacebookPage>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Select a Facebook Page',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Choose which page SocialBox should use for posting.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...pages.map(
+              (page) => ListTile(
+                leading: const Icon(Icons.facebook_rounded),
+                title: Text(page.name),
+                subtitle: Text('Page ID: ${page.id}'),
+                onTap: () => Navigator.pop(sheetCtx, page),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || !context.mounted) return;
+    context.read<AuthBloc>().add(AuthSelectFacebookPage(selected));
   }
 
   Future<void> _connect(BuildContext context, SocialPlatform platform) async {

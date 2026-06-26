@@ -35,10 +35,10 @@ class AppTextStyles {
   );
 
   static TextStyle sectionHeader(BuildContext context) => TextStyle(
-        fontSize: 12,
-        letterSpacing: 0.4,
+        fontSize: 13,
+        letterSpacing: -0.1,
         fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
       );
 
   static TextStyle stepLabel(BuildContext context) => TextStyle(

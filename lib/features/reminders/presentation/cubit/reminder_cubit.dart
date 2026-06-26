@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../data/mappers/reminder_notification_mapper.dart';
+import '../../data/mappers/reminder_notification_platform_mapper.dart';
 import '../../domain/entities/reminder.dart';
 import '../../domain/repositories/reminder_repository.dart';
 
@@ -96,7 +97,7 @@ class ReminderCubit extends Cubit<ReminderState> {
               title: r.title,
               body: r.body,
               scheduledAt: _notificationAt(r.scheduledAt),
-              matchComponent: reminderMatchComponent(r),
+              matchComponent: toDateTimeComponents(reminderMatchComponent(r)),
               payload: r.postId,
             );
           }
@@ -118,7 +119,7 @@ class ReminderCubit extends Cubit<ReminderState> {
             title: reminder.title,
             body: reminder.body,
             scheduledAt: _notificationAt(reminder.scheduledAt),
-            matchComponent: reminderMatchComponent(reminder),
+            matchComponent: toDateTimeComponents(reminderMatchComponent(reminder)),
             payload: reminder.postId,
           );
         }
@@ -139,7 +140,7 @@ class ReminderCubit extends Cubit<ReminderState> {
           title: reminder.title,
           body: reminder.body,
           scheduledAt: _notificationAt(reminder.scheduledAt),
-          matchComponent: reminderMatchComponent(reminder),
+          matchComponent: toDateTimeComponents(reminderMatchComponent(reminder)),
           payload: reminder.postId,
         );
       }
@@ -167,7 +168,7 @@ class ReminderCubit extends Cubit<ReminderState> {
             title: updated.title,
             body: updated.body,
             scheduledAt: _notificationAt(updated.scheduledAt),
-            matchComponent: reminderMatchComponent(updated),
+            matchComponent: toDateTimeComponents(reminderMatchComponent(updated)),
             payload: updated.postId,
           );
         }

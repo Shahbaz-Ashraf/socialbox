@@ -75,61 +75,142 @@ class _PostDetailView extends StatelessWidget {
 
         final isBusy = state is PostDetailActionInProgress;
         final cubit = context.read<PostDetailCubit>();
+        final narrow = MediaQuery.of(context).size.width < 400;
 
         return Scaffold(
           appBar: AppBar(
             title: const Text('Post Detail'),
-            actions: [
-              IconButton(
-                tooltip: 'Copy post',
-                icon: const Icon(Icons.copy_rounded),
-                onPressed: () => cubit.copyContent(context),
-              ),
-              IconButton(
-                tooltip: 'Duplicate post',
-                icon: const Icon(Icons.content_copy_rounded),
-                onPressed: isBusy ? null : () => _duplicate(context, cubit),
-              ),
-              IconButton(
-                tooltip: 'View logs',
-                icon: const Icon(Icons.history_rounded),
-                onPressed: () => context.pushNamed(
-                  RouteNames.postLogs,
-                  pathParameters: {'id': postId},
-                ),
-              ),
-              IconButton(
-                tooltip: 'AI Post Writer',
-                icon: const Icon(Icons.psychology_rounded),
-                onPressed: () {
-                  context.pushNamed(
-                    RouteNames.aiPromptStudio,
-                    extra: PromptConfig.fromPost(
-                      title: post.title,
-                      content: post.content,
-                      platforms: post.platforms,
-                      tags: post.tags,
+            actions: narrow
+                ? [
+                    PopupMenuButton<String>(
+                      tooltip: 'Actions',
+                      icon: const Icon(Icons.more_vert_rounded),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'copy':
+                            cubit.copyContent(context);
+                            break;
+                          case 'duplicate':
+                            if (!isBusy) _duplicate(context, cubit);
+                            break;
+                          case 'logs':
+                            context.pushNamed(
+                              RouteNames.postLogs,
+                              pathParameters: {'id': postId},
+                            );
+                            break;
+                          case 'ai':
+                            context.pushNamed(
+                              RouteNames.aiPromptStudio,
+                              extra: PromptConfig.fromPost(
+                                title: post.title,
+                                content: post.content,
+                                platforms: post.platforms,
+                                tags: post.tags,
+                              ),
+                            );
+                            break;
+                          case 'edit':
+                            context
+                                .pushNamed(
+                                  RouteNames.editPost,
+                                  pathParameters: {'id': postId},
+                                )
+                                .then((_) {
+                              if (context.mounted) cubit.load();
+                            });
+                            break;
+                          case 'delete':
+                            if (!isBusy) _confirmDelete(context, cubit);
+                            break;
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'copy',
+                          child: Text('Copy post'),
+                        ),
+                        PopupMenuItem(
+                          value: 'duplicate',
+                          enabled: !isBusy,
+                          child: const Text('Duplicate post'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'logs',
+                          child: Text('View logs'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'ai',
+                          child: Text('AI Post Writer'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Edit'),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          enabled: !isBusy,
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
-              IconButton(
-                tooltip: 'Edit',
-                icon: const Icon(Icons.edit_rounded),
-                onPressed: () async {
-                  await context.pushNamed(
-                    RouteNames.editPost,
-                    pathParameters: {'id': postId},
-                  );
-                  if (context.mounted) cubit.load();
-                },
-              ),
-              IconButton(
-                tooltip: 'Delete',
-                icon: const Icon(Icons.delete_outline_rounded),
-                onPressed: isBusy ? null : () => _confirmDelete(context, cubit),
-              ),
-            ],
+                  ]
+                : [
+                    IconButton(
+                      tooltip: 'Copy post',
+                      icon: const Icon(Icons.copy_rounded),
+                      onPressed: () => cubit.copyContent(context),
+                    ),
+                    IconButton(
+                      tooltip: 'Duplicate post',
+                      icon: const Icon(Icons.content_copy_rounded),
+                      onPressed:
+                          isBusy ? null : () => _duplicate(context, cubit),
+                    ),
+                    IconButton(
+                      tooltip: 'View logs',
+                      icon: const Icon(Icons.history_rounded),
+                      onPressed: () => context.pushNamed(
+                        RouteNames.postLogs,
+                        pathParameters: {'id': postId},
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'AI Post Writer',
+                      icon: const Icon(Icons.psychology_rounded),
+                      onPressed: () {
+                        context.pushNamed(
+                          RouteNames.aiPromptStudio,
+                          extra: PromptConfig.fromPost(
+                            title: post.title,
+                            content: post.content,
+                            platforms: post.platforms,
+                            tags: post.tags,
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      tooltip: 'Edit',
+                      icon: const Icon(Icons.edit_rounded),
+                      onPressed: () async {
+                        await context.pushNamed(
+                          RouteNames.editPost,
+                          pathParameters: {'id': postId},
+                        );
+                        if (context.mounted) cubit.load();
+                      },
+                    ),
+                    IconButton(
+                      tooltip: 'Delete',
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      onPressed:
+                          isBusy ? null : () => _confirmDelete(context, cubit),
+                    ),
+                  ],
           ),
           body: ListView(
             padding: const EdgeInsets.all(16),

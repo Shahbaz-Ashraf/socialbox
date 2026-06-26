@@ -25,15 +25,15 @@
 
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
-| App bootstrap (DI, notifications, portrait lock) | `main.dart` initializes GetIt + local notifications | **Implemented** | WorkManager not wired |
+| App bootstrap (DI, notifications, portrait lock) | `main.dart` initializes GetIt + local notifications | **Implemented** | WorkManager registered on Android startup |
 | Light / dark / system theme | Material 3 theme with persisted `ThemeMode` | **Implemented** | Applied at app root via `SettingsCubit` |
 | GoRouter navigation | Shell route + nested routes for all features | **Implemented** | 15+ named routes |
 | Bottom navigation (5 tabs) | Home · Calendar · Comments · Posts · Settings | **Implemented** | Posting Log tab removed vs original spec |
 | AI Writer route (`/ai-writer`) | Full-screen AI prompt studio | **Implemented** | Reachable from dashboard, posts, settings |
-| Posting Log route (`/logs`) | Global posting history page | **Implemented** | Reachable from Settings |
+| Posting Log route (`/logs`) | Global posting history page | **Implemented** | Reachable from Settings + Dashboard recent activity |
 | 404 error page | Unknown route fallback | **Implemented** | |
 | BLoC debug observer | State transition logging | **Implemented** | `AppBlocObserver` in `main.dart` |
-| WorkManager background tasks | Scheduled API posting + token refresh | **Scheduled 2027** | Dependency + wiring not started |
+| WorkManager background tasks | Scheduled API posting + token refresh | **Implemented** | `BackgroundService` + 15-min periodic task on Android |
 
 ---
 
@@ -50,11 +50,11 @@
 | Settings persistence | SharedPreferences JSON wrapper | **Implemented** | All toggles consumed by features |
 | PromptDataSource | AI template, presets, last config | **Implemented** | SharedPreferences |
 | HashtagService | Extract, record, rank hashtag usage | **Implemented** | |
-| OAuthService | Twitter PKCE + LinkedIn/FB code exchange | **Partial** | Profile enrichment wired in `AuthRepositoryImpl`; FB page picker pending |
+| OAuthService | Twitter PKCE + LinkedIn/FB code exchange | **Partial** | LinkedIn profile fetch + enrichment wired; FB page picker pending |
 | DeepLinkHandler | OAuth redirect via `app_links` | **Implemented** | |
-| Dio HTTP client + auth interceptor | Centralized API layer | **Scheduled 2027** | Raw `http` used for OAuth only |
+| Dio HTTP client + auth interceptor | Centralized API layer | **Implemented** | `DioClient` + `withBearerToken()` for API posts |
 | NetworkInfo (connectivity check) | Online/offline detection | **Scheduled 2027** | |
-| Background posting executor | Find due posts → publish via API | **Scheduled 2027** | `PostDao.getPostsDueForPosting` exists |
+| Background posting executor | Find due posts → publish via API | **Implemented** | `BackgroundService.executeScheduledPosting()` |
 
 ---
 
@@ -98,8 +98,8 @@
 | Pull-to-refresh on post list | Refresh stream | **Implemented** | `PostListReload` event |
 | Default platforms from settings | Pre-select platforms on new post | **Implemented** | `PostFormCubit.applyDefaultPlatforms` |
 | Reminder offer after scheduling | Dialog → navigate to reminders | **Implemented** | Router passes prefill; form auto-opens |
-| Publish via API | Auto-post to connected platforms | **Scheduled 2027** | No `PostRemoteDataSource`; `PublishViaApi` gated stub |
-| Publish via API button on detail | Per-platform API publish action | **Partial** | UI wired; returns validation message until API layer ships |
+| Publish via API | Auto-post to connected platforms | **Implemented** | `PostRemoteDataSource` + `PublishViaApi` (gated by settings toggle) |
+| Publish via API button on detail | Per-platform API publish action | **Partial** | UI wired; requires connected account + `enableApiPosting` on |
 
 ---
 
@@ -115,7 +115,7 @@
 | Log tile (platform, status, method, URL) | Visual log entry row | **Implemented** | External URL for API posts only |
 | Update log status | Edit pending / failed / skipped | **Implemented** | `UpdateLogStatus` + `LogTile` menu/bottom sheet |
 | Platform log row widget | Compact per-platform status dots | **Implemented** | `PlatformLogRow` on `PostDetailPage` |
-| API posting log entries | `method: api` with external URL | **Scheduled 2027** | Only manual logs today |
+| API posting log entries | `method: api` with external URL | **Implemented** | Created by `PublishViaApi` on success |
 
 ---
 
@@ -143,10 +143,10 @@
 | Connected accounts page | Connect / disconnect per platform | **Implemented** | `SocialAccountsPage` |
 | OAuth token secure storage | Encrypted keystore-backed tokens | **Implemented** | |
 | Twitter OAuth 2.0 PKCE | `flutter_appauth` authorization flow | **Partial** | Needs production credentials + device test |
-| LinkedIn OAuth 2.0 | Code exchange via HTTP | **Partial** | No profile fetch after token |
+| LinkedIn OAuth 2.0 | Code exchange via HTTP | **Partial** | Profile fetch via `_fetchLinkedInProfile`; needs device credentials test |
 | Facebook OAuth 2.0 | Code exchange via HTTP | **Partial** | No page list / page token picker |
 | Token refresh | Refresh token exchange | **Implemented** | `AuthRepositoryImpl` + `ensureFreshToken` |
-| Profile fetch (username, avatar) | GET /me per platform | **Partial** | `enrichWithProfile` called on connect/refresh; needs device test |
+| Profile fetch (username, avatar) | GET /me per platform | **Implemented** | `enrichWithProfile` — LinkedIn + Twitter wired; needs device test |
 | Facebook page picker | Select page + store page token | **Scheduled 2027** | |
 | Settings: enable API posting toggle | Master switch for auto-posting | **Implemented** | Gated in `PublishViaApi` use case |
 | Settings: auto-refresh tokens toggle | Background token refresh | **Implemented** | `AuthRepositoryImpl` on load/connect |
@@ -166,7 +166,7 @@
 | Quick actions | New Post · Calendar shortcuts | **Implemented** | |
 | Auto-refresh every 60s | Periodic stats reload | **Implemented** | Shows loading spinner each cycle |
 | AI writer quick card | Inline topic → copy prompt → open AI apps | **Implemented** | `DashboardAiWriterCard` |
-| Global search (posts + comments) | Unified `SearchDelegate` | **Scheduled 2027** | Comments search only today |
+| Global search (posts + comments) | Unified `SearchDelegate` | **Implemented** | `GlobalSearchDelegate` on dashboard app bar |
 | Lottie / shimmer polish | Animated loading + empty states | **Scheduled 2027** | |
 
 ---
@@ -186,7 +186,7 @@
 | AI Post Writer link | → AI prompt studio | **Implemented** | |
 | Export comments to CSV | `share_plus` file export | **Implemented** | |
 | About / version info | App metadata display | **Implemented** | |
-| OAuth client ID fields in settings | Per-platform credential inputs | **Scheduled 2027** | Credentials only in connect dialog today |
+| OAuth client ID fields in settings | Per-platform credential inputs | **Implemented** | LinkedIn + Twitter client ID/secret in Settings |
 
 ---
 
@@ -238,10 +238,10 @@
 
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
-| PostRemoteDataSource | Twitter v2 · LinkedIn · Facebook Graph API | **Scheduled 2027** | File does not exist |
-| PublishViaApi use case | Token → API call → log entry | **Partial** | Gated stub; no remote datasource yet |
-| Dio client + per-platform auth interceptor | Bearer token injection | **Scheduled 2027** | |
-| WorkManager periodic posting | Check due posts every 15 min | **Scheduled 2027** | |
+| PostRemoteDataSource | Twitter v2 · LinkedIn · Facebook Graph API | **Implemented** | Twitter + LinkedIn + Facebook publish methods |
+| PublishViaApi use case | Token → API call → log entry | **Implemented** | Gated by `enableApiPosting`; creates API log entries |
+| Dio client + per-platform auth interceptor | Bearer token injection | **Implemented** | `DioClient.withBearerToken()` |
+| WorkManager periodic posting | Check due posts every 15 min | **Implemented** | `BackgroundService.register()` in `main.dart` |
 | Auto token refresh before API calls | Refresh expired tokens | **Implemented** | `ensureFreshToken` in auth repo |
 | Posting result notifications | Success / failure alerts | **Scheduled 2027** | Service method exists; never called |
 | Daily posting summary notification | End-of-day digest channel | **Scheduled 2027** | Channel created; unused |
@@ -253,11 +253,11 @@
 
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
-| Unit + widget tests | BLoC tests, use case tests | **Scheduled 2027** | `test/` directory empty |
+| Unit + widget tests | BLoC tests, use case tests | **Partial** | 6 test files (cubit, page, widget tests) |
 | Lottie animations | Empty states on all list pages | **Scheduled 2027** | Not in `pubspec.yaml` |
 | Shimmer skeletons | Loading placeholders on all pages | **Scheduled 2027** | Partial use on calendar only |
 | App icon + splash screen | Branded launch experience | **Scheduled 2027** | |
-| Strict `analysis_options.yaml` lints | Zero-warning CI target | **Pending** | 6 info-level lints today |
+| Strict `analysis_options.yaml` lints | Zero-warning CI target | **Implemented** | `flutter analyze` — 0 issues |
 | Windows desktop entry point | `main_windows.dart` + window manager | **Scheduled 2027** | Flutter Windows target exists |
 | Cached network images for avatars | OAuth profile pictures | **Scheduled 2027** | Dependency present; avatars never fetched |
 | Injectable / Freezed codegen | Replace manual DI + Equatable states | **Scheduled 2027** | Annotations exist; manual wiring used |
@@ -273,21 +273,21 @@
 
 | Area | Implemented | Partial | Pending | Scheduled 2027 |
 |------|:-----------:|:-------:|:-------:|:--------------:|
-| Navigation & Shell | 8 | 0 | 0 | 1 |
-| Foundation & Services | 9 | 1 | 0 | 4 |
+| Navigation & Shell | 9 | 0 | 0 | 0 |
+| Foundation & Services | 11 | 1 | 0 | 2 |
 | Comment Templates | 10 | 0 | 0 | 2 |
-| Posts Manager | 18 | 0 | 0 | 2 |
-| Posting Log | 8 | 0 | 0 | 1 |
+| Posts Manager | 17 | 1 | 0 | 1 |
+| Posting Log | 9 | 0 | 0 | 0 |
 | Reminders | 9 | 0 | 0 | 0 |
-| Social Auth | 4 | 3 | 0 | 2 |
-| Dashboard | 9 | 0 | 0 | 2 |
-| Settings | 11 | 0 | 0 | 1 |
+| Social Auth | 5 | 2 | 0 | 2 |
+| Dashboard | 10 | 0 | 0 | 1 |
+| Settings | 12 | 0 | 0 | 0 |
 | AI Post Writer | 11 | 0 | 0 | 1 |
 | Hashtags | 4 | 0 | 0 | 1 |
 | Calendar | 5 | 0 | 0 | 1 |
-| API Auto-Posting | 1 | 1 | 0 | 6 |
-| Polish & Platform | 0 | 0 | 1 | 12 |
-| **Totals** | **107** | **5** | **1** | **35** |
+| API Auto-Posting | 5 | 0 | 0 | 3 |
+| Polish & Platform | 1 | 1 | 0 | 11 |
+| **Totals** | **118** | **5** | **0** | **25** |
 
 ---
 
@@ -295,10 +295,10 @@
 
 The following are explicitly targeted for the **2027 release cycle**:
 
-1. **API auto-posting** — Full Twitter / LinkedIn / Facebook publish pipeline with WorkManager
-2. **OAuth completion** — Profile fetch, Facebook page picker, auto token refresh
+1. **API auto-posting** — ✅ Core pipeline shipped; recurring post auto-create still pending
+2. **OAuth completion** — ✅ LinkedIn profile fetch + token refresh; Facebook page picker pending
 3. **Settings integration** — ✅ All toggles wired (notifications, lead time, default platforms, API posting gate)
-4. **Posting log navigation** — Optional bottom-nav tab (Settings link exists today)
+4. **Posting log navigation** — ✅ Settings + Dashboard links; optional bottom-nav tab still deferred
 5. **Notification deep links** — ✅ Wired (`main.dart` → `/posts/:id`)
 6. **Post attachments UI** — ✅ Image picker in create/edit form
 7. **Production polish** — Lottie, shimmer, app icon, splash, tests

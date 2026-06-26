@@ -63,6 +63,9 @@ class _SettingsView extends StatelessWidget {
                 trailing: Text('${settings.reminderLeadMinutes}m'),
               ),
               const Divider(),
+              const _SectionTitle('OAuth Credentials'),
+              const _OAuthCredentialsSection(),
+              const Divider(),
               const _SectionTitle('Social Posting'),
               SwitchListTile(
                 title: const Text('Enable API posting'),
@@ -246,6 +249,162 @@ class _DefaultPlatformsTile extends StatelessWidget {
               },
             );
           },
+        );
+      },
+    );
+  }
+}
+
+class _OAuthCredentialsSection extends StatefulWidget {
+  const _OAuthCredentialsSection();
+
+  @override
+  State<_OAuthCredentialsSection> createState() =>
+      _OAuthCredentialsSectionState();
+}
+
+class _OAuthCredentialsSectionState extends State<_OAuthCredentialsSection> {
+  final _fbAppId = TextEditingController();
+  final _fbAppSecret = TextEditingController();
+  final _liClientId = TextEditingController();
+  final _liClientSecret = TextEditingController();
+  final _twClientId = TextEditingController();
+  final _twClientSecret = TextEditingController();
+  bool _initialized = false;
+
+  @override
+  void dispose() {
+    _fbAppId.dispose();
+    _fbAppSecret.dispose();
+    _liClientId.dispose();
+    _liClientSecret.dispose();
+    _twClientId.dispose();
+    _twClientSecret.dispose();
+    super.dispose();
+  }
+
+  void _initFromSettings(AppSettings settings) {
+    if (_initialized) return;
+    _fbAppId.text = settings.fbAppId ?? '';
+    _fbAppSecret.text = settings.fbAppSecret ?? '';
+    _liClientId.text = settings.liClientId ?? '';
+    _liClientSecret.text = settings.liClientSecret ?? '';
+    _twClientId.text = settings.twClientId ?? '';
+    _twClientSecret.text = settings.twClientSecret ?? '';
+    _initialized = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SettingsCubit, AppSettings>(
+      builder: (context, settings) {
+        _initFromSettings(settings);
+        final cubit = context.read<SettingsCubit>();
+
+        String? emptyToNull(String v) => v.trim().isEmpty ? null : v.trim();
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Store app credentials from each platform developer portal. '
+                'Used when connecting accounts.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Facebook',
+                style: AppTextStyles.sectionHeader(context).copyWith(fontSize: 11),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _fbAppId,
+                decoration: const InputDecoration(
+                  labelText: 'Facebook App ID',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (v) => cubit.update(
+                  settings.copyWith(fbAppId: emptyToNull(v)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _fbAppSecret,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Facebook App Secret',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (v) => cubit.update(
+                  settings.copyWith(fbAppSecret: emptyToNull(v)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'LinkedIn',
+                style: AppTextStyles.sectionHeader(context).copyWith(fontSize: 11),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _liClientId,
+                decoration: const InputDecoration(
+                  labelText: 'LinkedIn Client ID',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (v) => cubit.update(
+                  settings.copyWith(liClientId: emptyToNull(v)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _liClientSecret,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'LinkedIn Client Secret',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (v) => cubit.update(
+                  settings.copyWith(liClientSecret: emptyToNull(v)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Twitter / X',
+                style: AppTextStyles.sectionHeader(context).copyWith(fontSize: 11),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _twClientId,
+                decoration: const InputDecoration(
+                  labelText: 'Twitter Client ID',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (v) => cubit.update(
+                  settings.copyWith(twClientId: emptyToNull(v)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _twClientSecret,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Twitter Client Secret (optional)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (v) => cubit.update(
+                  settings.copyWith(twClientSecret: emptyToNull(v)),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

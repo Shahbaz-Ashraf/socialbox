@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/connected_account.dart';
+import '../../domain/entities/facebook_page.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,15 @@ final class AuthRefresh extends AuthEvent {
 
   @override
   List<Object?> get props => [platform];
+}
+
+final class AuthSelectFacebookPage extends AuthEvent {
+  const AuthSelectFacebookPage(this.page);
+
+  final FacebookPage page;
+
+  @override
+  List<Object?> get props => [page];
 }
 
 // ---------------------------------------------------------------------------
@@ -110,6 +120,21 @@ final class AuthFailureState extends AuthState {
   List<Object?> get props => [message, allAccounts];
 }
 
+final class AuthFacebookPagePicker extends AuthState {
+  const AuthFacebookPagePicker({
+    required this.pages,
+    required this.partialAccount,
+    required this.allAccounts,
+  });
+
+  final List<FacebookPage> pages;
+  final ConnectedAccount partialAccount;
+  final List<ConnectedAccount> allAccounts;
+
+  @override
+  List<Object?> get props => [pages, partialAccount, allAccounts];
+}
+
 final class AuthError extends AuthState {
   const AuthError(this.message);
 
@@ -129,6 +154,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthConnect>(_onConnect);
     on<AuthDisconnect>(_onDisconnect);
     on<AuthRefresh>(_onRefresh);
+    on<AuthSelectFacebookPage>(_onSelectFacebookPage);
   }
 
   final AuthRepository _repo;
@@ -152,6 +178,48 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       clientId: event.clientId,
       clientSecret: event.clientSecret,
     );
+    r.fold(
+      (f) async {
+        final accounts = await _accountsOrEmpty();
+        emit(AuthFailureState(f.message, accounts));
+      },
+      (account) async {
+        final accounts = await _accountsOrEmpty();
+        if (event.platform == SocialPlatform.facebook &&
+            account.pageId == null) {
+          final pagesR = await _repo.getFacebookPages();
+          pagesR.fold(
+            (f) => emit(AuthFailureState(f.message, accounts)),
+            (pages) {
+              if (pages.isEmpty) {
+                emit(AuthFailureState(
+                  'No Facebook pages found for this account.',
+                  accounts,
+                ));
+              } else if (pages.length == 1) {
+                add(AuthSelectFacebookPage(pages.first));
+              } else {
+                emit(AuthFacebookPagePicker(
+                  pages: pages,
+                  partialAccount: account,
+                  allAccounts: accounts,
+                ));
+              }
+            },
+          );
+        } else {
+          emit(AuthConnected(account, accounts));
+        }
+      },
+    );
+  }
+
+  Future<void> _onSelectFacebookPage(
+    AuthSelectFacebookPage event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    final r = await _repo.selectFacebookPage(event.page);
     r.fold(
       (f) async {
         final accounts = await _accountsOrEmpty();

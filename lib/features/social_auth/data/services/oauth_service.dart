@@ -8,6 +8,7 @@ import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../domain/entities/facebook_page.dart';
 import '../deep_link_handler.dart';
 
 /// Performs the full OAuth 2.0 Authorization Code flow using
@@ -268,6 +269,53 @@ class OAuthService {
       return token;
     }
   }
+
+  /// Fetches Facebook pages the user can manage via Graph API.
+  Future<List<FacebookPage>> fetchFacebookPages(String userAccessToken) async {
+    try {
+      final resp = await http.get(
+        Uri.parse(
+          '${ApiEndpoints.facebookMeAccounts}?access_token=$userAccessToken',
+        ),
+        headers: const {'Accept': 'application/json'},
+      );
+      if (resp.statusCode != 200) return const [];
+      final body = jsonDecode(resp.body) as Map<String, dynamic>;
+      final data = body['data'] as List<dynamic>? ?? const [];
+      return data
+          .map((raw) {
+            final page = raw as Map<String, dynamic>;
+            final id = page['id'] as String?;
+            final token = page['access_token'] as String?;
+            if (id == null || token == null) return null;
+            return FacebookPage(
+              id: id,
+              name: page['name'] as String? ?? 'Facebook Page',
+              accessToken: token,
+            );
+          })
+          .whereType<FacebookPage>()
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  OAuthTokenModel applyFacebookPage(
+    OAuthTokenModel token, {
+    required FacebookPage page,
+  }) =>
+      OAuthTokenModel(
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        expiresAt: token.expiresAt,
+        userId: token.userId,
+        username: token.username,
+        displayName: page.name,
+        avatarUrl: token.avatarUrl,
+        pageId: page.id,
+        pageToken: page.accessToken,
+      );
 
   /// Refresh an existing token using its refresh token.
   Future<OAuthTokenModel?> refresh({

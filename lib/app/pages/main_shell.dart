@@ -33,36 +33,26 @@ class MainShell extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      extendBody: true,
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: tokens.cardShadow,
-            border: Border.all(color: tokens.accentBorder),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: NavigationBar(
-            selectedIndex: currentIndex,
-            backgroundColor: tokens.navBarBackground,
-            elevation: 0,
-            height: 68,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            onDestinationSelected: (i) => context.go(_tabs[i].path),
-            destinations: _tabs
-                .map(
-                  (t) => NavigationDestination(
-                    icon: Icon(t.icon),
-                    selectedIcon: Icon(t.icon, fill: 1.0),
-                    label: t.label,
-                  ),
-                )
-                .toList(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        backgroundColor: tokens.navBarBackground,
+        elevation: 0,
+        height: 64,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: Theme.of(context).colorScheme.primary.withValues(
+              alpha: 0.1,
             ),
-          ),
-        ),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        onDestinationSelected: (i) => context.go(_tabs[i].path),
+        destinations: _tabs
+            .map(
+              (t) => NavigationDestination(
+                icon: Icon(t.icon),
+                selectedIcon: Icon(t.icon, fill: 1.0),
+                label: t.label,
+              ),
+            )
+            .toList(),
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_decorations.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/prompt_config.dart';
 
@@ -31,65 +30,31 @@ class AiPlatformChipRow extends StatelessWidget {
     final theme = Theme.of(context);
     final normalized = PromptConfig.normalizePlatform(selected);
 
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: AppDecorations.listItemSurface(context),
-      child: Row(
-        children: PromptConfig.aiPlatforms.map((platform) {
-          final social = aiPlatformToSocial(platform);
-          final isSelected = platform == normalized;
-          final color = social.color;
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => onSelected(platform),
-                  borderRadius: BorderRadius.circular(10),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? theme.cardColor
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(social.icon, color: color, size: 20),
-                        const SizedBox(height: 4),
-                        Text(
-                          platform,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight:
-                                isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected
-                                ? theme.colorScheme.onSurface
-                                : theme.hintColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+    return SegmentedButton<String>(
+      segments: PromptConfig.aiPlatforms.map((platform) {
+        final social = aiPlatformToSocial(platform);
+        return ButtonSegment<String>(
+          value: platform,
+          label: Text(platform, style: const TextStyle(fontSize: 11)),
+          icon: Icon(social.icon, size: 16, color: social.color),
+        );
+      }).toList(),
+      selected: {normalized},
+      onSelectionChanged: (selection) {
+        if (selection.isNotEmpty) onSelected(selection.first);
+      },
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return theme.colorScheme.primaryContainer;
+          }
+          return theme.colorScheme.surfaceContainerHighest;
+        }),
       ),
     );
   }

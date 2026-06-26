@@ -77,19 +77,27 @@ class ReminderTile extends StatelessWidget {
                   Icon(reminder.repeat.icon,
                       size: 12, color: reminder.repeat.color),
                   const SizedBox(width: 4),
-                  Text(
-                    reminder.repeat.label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: reminder.repeat.color,
-                        fontWeight: FontWeight.w600),
+                  Flexible(
+                    child: Text(
+                      reminder.repeat.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: reminder.repeat.color,
+                          fontWeight: FontWeight.w600),
+                    ),
                   ),
                   if (reminder.repeat == ReminderRepeat.custom &&
                       reminder.repeatDays.isNotEmpty) ...[
                     const SizedBox(width: 6),
-                    Text(
-                      AppDateUtils.repeatDaysSummary(reminder.repeatDays),
-                      style: const TextStyle(fontSize: 11),
+                    Flexible(
+                      child: Text(
+                        AppDateUtils.repeatDaysSummary(reminder.repeatDays),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11),
+                      ),
                     ),
                   ],
                   if (reminder.postId != null) ...[

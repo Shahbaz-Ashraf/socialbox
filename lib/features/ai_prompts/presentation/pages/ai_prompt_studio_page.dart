@@ -459,7 +459,7 @@ class _ConfigTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(
+        const _SectionHeader(
           icon: Icons.lightbulb_rounded,
           title: 'Topic & Keywords',
           subtitle: 'What should the AI write about?',
@@ -495,7 +495,7 @@ class _ConfigTab extends StatelessWidget {
           onChanged: (v) => cubit.updateField(secondaryKeywords: v),
         ),
         const SizedBox(height: 20),
-        _SectionHeader(
+        const _SectionHeader(
           icon: Icons.public_rounded,
           title: 'Platform & Audience',
         ),
@@ -544,7 +544,7 @@ class _ConfigTab extends StatelessWidget {
           onChanged: (v) => cubit.updateField(targetAudience: v),
         ),
         const SizedBox(height: 20),
-        _SectionHeader(
+        const _SectionHeader(
           icon: Icons.palette_rounded,
           title: 'Voice & Style',
         ),
@@ -610,7 +610,7 @@ class _ConfigTab extends StatelessWidget {
           onChanged: (v) => cubit.updateField(contentPillar: v ?? ''),
         ),
         const SizedBox(height: 20),
-        _SectionHeader(
+        const _SectionHeader(
           icon: Icons.straighten_rounded,
           title: 'Limits & Formatting',
         ),

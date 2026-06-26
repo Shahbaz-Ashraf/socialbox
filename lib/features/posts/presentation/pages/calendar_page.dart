@@ -10,9 +10,7 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/loading_state.dart';
 import '../../../../injection_container.dart';
 import '../../../reminders/domain/entities/reminder.dart';
-import '../../../reminders/domain/repositories/reminder_repository.dart';
 import '../../domain/entities/social_post.dart';
-import '../../domain/repositories/post_repository.dart';
 import '../cubit/calendar_cubit.dart';
 import '../widgets/post_status_badge.dart';
 
@@ -22,14 +20,7 @@ class CalendarPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) {
-        final cubit = CalendarCubit(
-          postRepository: getIt<PostRepository>(),
-          reminderRepository: getIt<ReminderRepository>(),
-        );
-        cubit.start();
-        return cubit;
-      },
+      create: (_) => getIt<CalendarCubit>()..start(),
       child: const _CalendarView(),
     );
   }

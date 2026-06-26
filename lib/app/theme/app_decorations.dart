@@ -13,13 +13,54 @@ class AppDecorations {
 
     return BoxDecoration(
       color: theme.cardColor,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       border: Border.all(
         color: isDark
             ? tokens.accentBorder
-            : tokens.accentBorder.withValues(alpha: 0.9),
+            : tokens.accentBorder.withValues(alpha: 0.65),
+      ),
+      boxShadow: isDark ? tokens.cardShadow : tokens.cardShadow,
+    );
+  }
+
+  /// Elevated modern card with soft shadow — dashboards and forms.
+  static BoxDecoration modernCard(BuildContext context, {Color? tint}) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppThemeTokens>() ?? AppThemeTokens.light();
+    final isDark = theme.brightness == Brightness.dark;
+    final base = tint ?? theme.colorScheme.surface;
+
+    return BoxDecoration(
+      color: base,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: theme.colorScheme.outlineVariant.withValues(
+          alpha: isDark ? 0.35 : 0.5,
+        ),
       ),
       boxShadow: tokens.cardShadow,
+    );
+  }
+
+  static BoxDecoration accentHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: isDark
+            ? [
+                theme.colorScheme.primary.withValues(alpha: 0.35),
+                theme.colorScheme.surface.withValues(alpha: 0.2),
+              ]
+            : [
+                theme.colorScheme.primary.withValues(alpha: 0.12),
+                theme.colorScheme.surface,
+              ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(16),
     );
   }
 

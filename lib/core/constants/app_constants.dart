@@ -20,6 +20,9 @@ class AppConstants {
   static const String dailySummaryChannelId = 'daily_summary';
   static const String dailySummaryChannelName = 'Daily Summary';
 
+  // WorkManager
+  static const String scheduledPostingTask = 'socialbox_scheduled_posting';
+
   // Limits
   static const int maxCommentLength = 2000;
   static const int maxPostContentLength = 5000;

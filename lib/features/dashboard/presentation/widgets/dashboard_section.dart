@@ -7,52 +7,35 @@ class DashboardSection extends StatelessWidget {
   const DashboardSection({
     super.key,
     required this.title,
-    required this.icon,
     required this.child,
     this.trailing,
-    this.accentColor,
   });
 
   final String title;
-  final IconData icon;
   final Widget child;
   final Widget? trailing;
-  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = accentColor ?? theme.colorScheme.primary;
-
     return Container(
       decoration: AppDecorations.surfaceCard(context),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: AppDecorations.iconBadge(accent),
-                  child: Icon(icon, size: 17, color: accent),
-                ),
-                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title,
-                    style: theme.textTheme.titleMedium,
+                    style: AppTextStyles.sectionHeader(context),
                   ),
                 ),
                 if (trailing != null) trailing!,
               ],
             ),
-            const SizedBox(height: 4),
-            Divider(
-              height: 20,
-              color: theme.dividerColor.withValues(alpha: 0.5),
-            ),
+            const SizedBox(height: 12),
             child,
           ],
         ),
@@ -77,33 +60,44 @@ class DashboardEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      decoration: AppDecorations.listItemSurface(context),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            Icons.inbox_rounded,
-            size: 32,
-            color: theme.hintColor.withValues(alpha: 0.6),
+            Icons.info_outline_rounded,
+            size: 18,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
           ),
-          const SizedBox(height: 10),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.body.copyWith(
-              color: theme.hintColor,
-              fontSize: 13,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: AppTextStyles.body.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    fontSize: 13,
+                  ),
+                ),
+                if (actionLabel != null && onAction != null) ...[
+                  const SizedBox(height: 6),
+                  TextButton(
+                    onPressed: onAction,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(actionLabel!),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
-          ],
         ],
       ),
     );

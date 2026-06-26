@@ -127,7 +127,7 @@ Bottom tabs: **Home** `/dashboard` · **Calendar** `/calendar` · **Comments** `
 | Route | Path | Notes |
 |-------|------|-------|
 | AI Writer | `/ai-writer` | Query: `?topic=&platform=` — platform must be normalized |
-| Posting Log | `/logs` | **No nav link** — orphan route |
+| Posting Log | `/logs` | Linked from Settings + Dashboard recent activity |
 | Social Accounts | `/settings/accounts` | OAuth credentials |
 | Reminders | `/settings/reminders` | |
 
@@ -145,7 +145,7 @@ Route name constants: `lib/app/router/route_names.dart`
 | Settings toggles unused | `defaultPlatforms`, `enableNotifications`, etc. saved but not read elsewhere | Wire before assuming behavior |
 | Reminder prefill | Create-post may pass `extra` that `RemindersPage` ignores | Check route `extra` handling |
 | Notification taps | `NotificationService` callback not wired in `main.dart` | Deep links won't navigate yet |
-| Posting log hidden | `/logs` exists, no menu entry | Use `context.go('/logs')` or add nav link |
+| Posting log entry points | `/logs` linked from Settings + Dashboard | Bottom-nav tab still optional |
 | OAuth compile errors | `ServiceConfiguration` vs `AuthorizationServiceConfiguration` | Match `flutter_appauth` API |
 | `ApiEndpoints` typo | Was `AppEndpoints` in some stubs | Import `api_endpoints.dart` |
 | Enum in SQLite | Always `.name` strings | `draft` not `Draft` |
@@ -197,7 +197,7 @@ flutter analyze
 flutter test
 ```
 
-`test/` exists but has few tests — add tests under `test/features/...` matching feature structure.
+`test/` has **6 test files** (cubit, page, widget) — add more under `test/features/...` matching feature structure.
 
 ---
 
@@ -229,4 +229,4 @@ flutter test
 
 ---
 
-*Last updated: 2026-06-26 — architecture: Features-First Clean Architecture + MVVM + mixed BLoC/Cubit*
+*Last updated: 2026-06-26 (Agent 6) — architecture: Features-First Clean Architecture + MVVM + mixed BLoC/Cubit; `flutter analyze` 0 issues*

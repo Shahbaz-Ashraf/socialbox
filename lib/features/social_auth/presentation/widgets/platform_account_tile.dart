@@ -25,6 +25,7 @@ class PlatformAccountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connected = account?.isConnected == true;
+    final narrow = MediaQuery.of(context).size.width < 400;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.all(14),
@@ -100,22 +101,50 @@ class PlatformAccountTile extends StatelessWidget {
               height: 22,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
-          else if (connected) ...[
-            if (onRefresh != null)
-              IconButton(
-                tooltip: 'Refresh token',
-                icon: const Icon(Icons.refresh_rounded),
-                onPressed: onRefresh,
-              ),
-            FilledButton.tonal(
-              onPressed: onDisconnect,
-              child: const Text('Disconnect'),
-            ),
-          ] else
-            FilledButton(
-              onPressed: onConnect,
-              child: const Text('Connect'),
-            ),
+          else if (connected)
+            narrow
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onRefresh != null)
+                        IconButton(
+                          tooltip: 'Refresh token',
+                          icon: const Icon(Icons.refresh_rounded),
+                          onPressed: onRefresh,
+                        ),
+                      IconButton(
+                        tooltip: 'Disconnect',
+                        icon: const Icon(Icons.link_off_rounded),
+                        onPressed: onDisconnect,
+                      ),
+                    ],
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onRefresh != null)
+                        IconButton(
+                          tooltip: 'Refresh token',
+                          icon: const Icon(Icons.refresh_rounded),
+                          onPressed: onRefresh,
+                        ),
+                      FilledButton.tonal(
+                        onPressed: onDisconnect,
+                        child: const Text('Disconnect'),
+                      ),
+                    ],
+                  )
+          else
+            narrow
+                ? IconButton(
+                    tooltip: 'Connect',
+                    icon: const Icon(Icons.link_rounded),
+                    onPressed: onConnect,
+                  )
+                : FilledButton(
+                    onPressed: onConnect,
+                    child: const Text('Connect'),
+                  ),
         ],
       ),
     );

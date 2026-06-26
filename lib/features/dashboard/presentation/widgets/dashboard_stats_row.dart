@@ -1,122 +1,84 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_decorations.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import 'stat_card.dart';
 
-class DashboardStatsRow extends StatefulWidget {
+class DashboardStatsRow extends StatelessWidget {
   const DashboardStatsRow({super.key, required this.stats});
 
   final DashboardStats stats;
 
   @override
-  State<DashboardStatsRow> createState() => _DashboardStatsRowState();
-}
-
-class _DashboardStatsRowState extends State<DashboardStatsRow> {
-  bool _expanded = false;
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final width = MediaQuery.of(context).size.width;
-    final cols = width > 600 ? 4 : 2;
-
-    final primaryStats = [
-      _StatDef('Posts', '${widget.stats.totalPosts}', Icons.article_outlined,
+    final metrics = [
+      _StatDef('Posts', '${stats.totalPosts}', Icons.article_outlined,
           AppColors.statPosts),
-      _StatDef('Scheduled', '${widget.stats.scheduledPosts}',
-          Icons.schedule_outlined, AppColors.statScheduled),
-      _StatDef('Comments', '${widget.stats.totalComments}',
+      _StatDef('Scheduled', '${stats.scheduledPosts}', Icons.schedule_outlined,
+          AppColors.statScheduled),
+      _StatDef('Posted', '${stats.postedPosts}', Icons.check_circle_outline,
+          AppColors.statPosted),
+      _StatDef('Drafts', '${stats.draftPosts}', Icons.edit_note_outlined,
+          AppColors.statDrafts),
+      _StatDef('Comments', '${stats.totalComments}',
           Icons.chat_bubble_outline_rounded, AppColors.statComments),
-      _StatDef('Copies', '${widget.stats.totalCopies}',
-          Icons.content_copy_rounded, AppColors.statCopies),
-    ];
-
-    final secondaryStats = [
-      _StatDef('Posted', '${widget.stats.postedPosts}',
-          Icons.check_circle_outline_rounded, AppColors.statPosted),
-      _StatDef('Drafts', '${widget.stats.draftPosts}',
-          Icons.edit_note_outlined, AppColors.statDrafts),
-      _StatDef('Categories', '${widget.stats.totalCommentCategories}',
+      _StatDef('Copies', '${stats.totalCopies}', Icons.content_copy_outlined,
+          AppColors.statCopies),
+      _StatDef('Categories', '${stats.totalCommentCategories}',
           Icons.folder_outlined, AppColors.statCategories),
-      _StatDef('Logs', '${widget.stats.totalLogs}', Icons.history_rounded,
+      _StatDef('Logs', '${stats.totalLogs}', Icons.history_rounded,
           AppColors.statLogs),
     ];
 
-    final visibleStats =
-        _expanded ? [...primaryStats, ...secondaryStats] : primaryStats;
-
-    return Container(
-      decoration: AppDecorations.surfaceCard(context),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Overview',
-                style: theme.textTheme.titleMedium,
-              ),
-              const Spacer(),
-              InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _expanded ? 'Show less' : 'Show all',
-                        style: AppTextStyles.caption.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Icon(
-                        _expanded
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                        size: 18,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Metrics', style: AppTextStyles.sectionHeader(context)),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 68,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: metrics.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final s = metrics[i];
+              return StatCard(
+                label: s.label,
+                value: s.value,
+                icon: s.icon,
+                color: s.color,
+                compact: true,
+              );
+            },
           ),
-          const SizedBox(height: 12),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: cols,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: width > 600 ? 2.4 : 2.1,
-              children: visibleStats
-                  .map(
-                    (s) => StatCard(
-                      label: s.label,
-                      value: s.value,
-                      icon: s.icon,
-                      color: s.color,
-                    ),
-                  )
-                  .toList(),
+        ),
+        if (stats.platformCounts.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            stats.platformCounts.entries
+                .map((e) => '${_platformLabel(e.key)} ${e.value}')
+                .join('  ·  '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
             ),
           ),
         ],
-      ),
+      ],
     );
+  }
+
+  String _platformLabel(String key) {
+    return switch (key) {
+      'facebook' => 'Facebook',
+      'linkedin' => 'LinkedIn',
+      'twitter' => 'X',
+      _ => key,
+    };
   }
 }
 

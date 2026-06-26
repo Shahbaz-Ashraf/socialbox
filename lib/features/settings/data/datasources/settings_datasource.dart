@@ -27,6 +27,12 @@ class SettingsDataSource {
         enableApiPosting: map['enableApiPosting'] as bool? ?? false,
         reminderLeadMinutes: map['reminderLeadMinutes'] as int? ?? 15,
         autoRefreshTokens: map['autoRefreshTokens'] as bool? ?? true,
+        fbAppId: map['fbAppId'] as String?,
+        fbAppSecret: map['fbAppSecret'] as String?,
+        liClientId: map['liClientId'] as String?,
+        liClientSecret: map['liClientSecret'] as String?,
+        twClientId: map['twClientId'] as String?,
+        twClientSecret: map['twClientSecret'] as String?,
       );
     } catch (_) {
       return const AppSettings();
@@ -44,6 +50,14 @@ class SettingsDataSource {
         'enableApiPosting': settings.enableApiPosting,
         'reminderLeadMinutes': settings.reminderLeadMinutes,
         'autoRefreshTokens': settings.autoRefreshTokens,
+        if (settings.fbAppId != null) 'fbAppId': settings.fbAppId,
+        if (settings.fbAppSecret != null) 'fbAppSecret': settings.fbAppSecret,
+        if (settings.liClientId != null) 'liClientId': settings.liClientId,
+        if (settings.liClientSecret != null)
+          'liClientSecret': settings.liClientSecret,
+        if (settings.twClientId != null) 'twClientId': settings.twClientId,
+        if (settings.twClientSecret != null)
+          'twClientSecret': settings.twClientSecret,
       }),
     );
   }

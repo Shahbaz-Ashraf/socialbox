@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../entities/connected_account.dart';
+import '../entities/facebook_page.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, List<ConnectedAccount>>> getConnectedAccounts();
@@ -24,4 +25,8 @@ abstract class AuthRepository {
     required String clientId,
     String? clientSecret,
   });
+  Future<Either<Failure, List<FacebookPage>>> getFacebookPages();
+  Future<Either<Failure, ConnectedAccount>> selectFacebookPage(
+    FacebookPage page,
+  );
 }

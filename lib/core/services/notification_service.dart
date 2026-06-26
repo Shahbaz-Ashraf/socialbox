@@ -150,18 +150,64 @@ class NotificationService {
   }
 
   Future<void> showInfo(String title, String body) async {
+    await showDailySummary(title: title, body: body);
+  }
+
+  static const int dailySummaryNotificationId = 900001;
+
+  /// Shows an end-of-day summary notification on the daily summary channel.
+  Future<void> showDailySummary({
+    required String title,
+    required String body,
+  }) async {
     await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      dailySummaryNotificationId,
       title,
       body,
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           AppConstants.dailySummaryChannelId,
           AppConstants.dailySummaryChannelName,
           channelDescription: 'End-of-day summaries',
           importance: Importance.low,
+          styleInformation: BigTextStyleInformation(body),
         ),
       ),
     );
+  }
+
+  /// Schedules a recurring daily summary at the given local time.
+  Future<void> scheduleDailySummary({
+    required DateTime scheduledAt,
+    required String title,
+    required String body,
+  }) async {
+    try {
+      final tzTime = tz.TZDateTime.from(scheduledAt, tz.local);
+      if (tzTime.isBefore(tz.TZDateTime.now(tz.local))) return;
+      await _plugin.zonedSchedule(
+        dailySummaryNotificationId,
+        title,
+        body,
+        tzTime,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            AppConstants.dailySummaryChannelId,
+            AppConstants.dailySummaryChannelName,
+            channelDescription: 'End-of-day summaries',
+            importance: Importance.low,
+            styleInformation: BigTextStyleInformation(body),
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('scheduleDailySummary error: $e');
+      }
+    }
   }
 }

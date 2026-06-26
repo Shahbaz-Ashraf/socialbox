@@ -131,40 +131,43 @@ class _DashboardAiWriterCardState extends State<DashboardAiWriterCard> {
         builder: (context, state) {
           final theme = Theme.of(context);
           final hasTopic = state.config.isReady;
-          final primary = theme.colorScheme.primary;
 
           return Container(
-            decoration: AppDecorations.surfaceCard(context),
+            decoration: AppDecorations.modernCard(context),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: AppDecorations.iconBadge(primary),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: Icon(
                           Icons.auto_awesome_rounded,
-                          color: primary,
-                          size: 22,
+                          size: 18,
+                          color: theme.colorScheme.onPrimaryContainer,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'AI Post Writer',
-                              style: AppTextStyles.cardTitle(context),
+                              'AI Writer',
+                              style: AppTextStyles.sectionHeader(context)
+                                  .copyWith(fontSize: 14),
                             ),
-                            const SizedBox(height: 2),
                             Text(
-                              'Describe, copy prompt, paste AI response',
-                              style: AppTextStyles.caption.copyWith(
-                                color: theme.hintColor,
+                              'Topic → copy prompt → paste result',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           ],
@@ -173,89 +176,82 @@ class _DashboardAiWriterCardState extends State<DashboardAiWriterCard> {
                       IconButton(
                         tooltip: 'Open studio',
                         visualDensity: VisualDensity.compact,
-                        icon: Icon(
-                          Icons.tune_rounded,
-                          color: theme.hintColor,
-                        ),
                         onPressed: _openStudio,
+                        icon: const Icon(Icons.tune_rounded, size: 20),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  const _StepLabel(step: 1, label: 'Topic'),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _topicCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'What do you want to write about?',
-                      helperText: 'Saved automatically as you type',
+                    decoration: InputDecoration(
+                      hintText: 'What should this post be about?',
+                      prefixIcon: const Icon(Icons.edit_outlined, size: 20),
+                      suffixIcon: hasTopic
+                          ? Icon(
+                              Icons.check_circle_rounded,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                     ),
-                    minLines: 2,
-                    maxLines: 3,
+                    maxLines: 1,
+                    textInputAction: TextInputAction.done,
                     onChanged: _syncTopicFromUser,
+                    onSubmitted: _syncTopicFromUser,
                   ),
-                  const SizedBox(height: 16),
-                  const _StepLabel(step: 2, label: 'Platform'),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   AiPlatformChipRow(
                     selected: state.config.platform,
                     onSelected: (p) => _cubit.updateField(platform: p),
                   ),
                   if (state.presets.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Recent presets',
-                      style: AppTextStyles.sectionHeader(context),
-                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 34,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: state.presets.length.clamp(0, 5),
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        separatorBuilder: (_, __) => const SizedBox(width: 6),
                         itemBuilder: (_, i) {
                           final preset = state.presets[i];
-                          return ActionChip(
+                          return FilterChip(
                             label: Text(preset.name),
                             visualDensity: VisualDensity.compact,
-                            onPressed: () => _confirmPresetLoad(preset),
+                            onSelected: (_) => _confirmPresetLoad(preset),
                           );
                         },
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
-                  const _StepLabel(step: 3, label: 'Actions'),
                   const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.content_copy_rounded, size: 18),
-                      label: const Text('Copy Prompt'),
-                      onPressed: hasTopic ? _copyPrompt : null,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.paste_rounded, size: 18),
-                          label: const Text('Paste'),
-                          onPressed: _pasteResponse,
+                        child: FilledButton.tonalIcon(
+                          onPressed: hasTopic ? _copyPrompt : null,
+                          icon: const Icon(Icons.copy_rounded, size: 18),
+                          label: const Text('Copy'),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                          label: const Text('Open AI'),
-                          onPressed:
-                              hasTopic ? () => _openAiPicker(hasTopic) : null,
+                          onPressed: _pasteResponse,
+                          icon: const Icon(Icons.paste_rounded, size: 18),
+                          label: const Text('Paste'),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        tooltip: 'Open in AI',
+                        onPressed:
+                            hasTopic ? () => _openAiPicker(hasTopic) : null,
+                        icon: const Icon(Icons.open_in_new_rounded, size: 20),
                       ),
                     ],
                   ),
@@ -265,41 +261,6 @@ class _DashboardAiWriterCardState extends State<DashboardAiWriterCard> {
           );
         },
       ),
-    );
-  }
-}
-
-class _StepLabel extends StatelessWidget {
-  const _StepLabel({required this.step, required this.label});
-
-  final int step;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '$step',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(label, style: AppTextStyles.stepLabel(context)),
-      ],
     );
   }
 }
