@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/services/notification_service.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/reminder.dart';
-import '../../domain/repositories/reminder_repository.dart';
-import '../cubit/reminder_cubit.dart';
+import '../bloc/reminder_bloc.dart';
 import '../widgets/reminder_form_sheet.dart';
 import '../widgets/reminder_tile.dart';
 
@@ -26,11 +24,7 @@ class RemindersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ReminderCubit(
-        repository: getIt<ReminderRepository>(),
-        notificationService: getIt<NotificationService>(),
-        settingsRepository: getIt(),
-      ),
+      create: (_) => getIt<ReminderBloc>(),
       child: _RemindersView(
         prefillTitle: prefillTitle,
         prefillTime: prefillTime,
@@ -85,7 +79,7 @@ class _RemindersViewState extends State<_RemindersView> {
         label: const Text('Reminder'),
         onPressed: () => _showForm(context),
       ),
-      body: BlocBuilder<ReminderCubit, ReminderState>(
+      body: BlocBuilder<ReminderBloc, ReminderState>(
         builder: (context, state) {
           if (state is ReminderLoading || state is ReminderInitial) {
             return const Center(child: CircularProgressIndicator());
@@ -122,7 +116,7 @@ class _RemindersViewState extends State<_RemindersView> {
                       child: ReminderTile(
                         reminder: r,
                         onToggle: (_) =>
-                            context.read<ReminderCubit>().toggle(r),
+                            context.read<ReminderBloc>().add(ReminderToggle(r)),
                         onTap: () => _showForm(context, existing: r),
                         onDelete: () => _confirmDelete(context, r),
                       ),
@@ -137,7 +131,7 @@ class _RemindersViewState extends State<_RemindersView> {
                       child: ReminderTile(
                         reminder: r,
                         onToggle: (_) =>
-                            context.read<ReminderCubit>().toggle(r),
+                            context.read<ReminderBloc>().add(ReminderToggle(r)),
                         onTap: () => _showForm(context, existing: r),
                         onDelete: () => _confirmDelete(context, r),
                       ),
@@ -160,7 +154,7 @@ class _RemindersViewState extends State<_RemindersView> {
     DateTime? prefillTime,
     String? linkedPostId,
   }) {
-    final cubit = context.read<ReminderCubit>();
+    final bloc = context.read<ReminderBloc>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -175,9 +169,9 @@ class _RemindersViewState extends State<_RemindersView> {
         linkedPostId: linkedPostId,
         onSubmit: (params) async {
           if (existing == null) {
-            return await cubit.create(params);
+            return await bloc.create(params);
           } else {
-            return await cubit.update(
+            return await bloc.update(
               existing,
               UpdateReminderParams(
                 id: existing.id,
@@ -217,7 +211,7 @@ class _RemindersViewState extends State<_RemindersView> {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await context.read<ReminderCubit>().delete(r);
+    context.read<ReminderBloc>().add(ReminderDelete(r));
   }
 }
 

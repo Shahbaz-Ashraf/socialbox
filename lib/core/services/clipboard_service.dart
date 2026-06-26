@@ -8,19 +8,20 @@ class ClipboardService {
     if (context.mounted) {
       final messenger = ScaffoldMessenger.maybeOf(context);
       messenger?.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Row(
-            children: const [
+            children: [
               Icon(Icons.check_circle_rounded,
                   color: Color(0xFF4CAF50), size: 20),
               SizedBox(width: 8),
               Expanded(child: Text('Copied to clipboard')),
             ],
           ),
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
         ),
       );
     }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../features/settings/domain/entities/app_settings.dart';
 import '../features/settings/presentation/cubit/settings_cubit.dart';
+import '../features/settings/presentation/utils/app_theme_mode_mapper.dart';
 import '../injection_container.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
@@ -21,7 +22,7 @@ class SocialBoxApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
-            themeMode: settings.themeMode,
+            themeMode: settings.themeMode.toThemeMode(),
             routerConfig: appRouter,
           );
         },

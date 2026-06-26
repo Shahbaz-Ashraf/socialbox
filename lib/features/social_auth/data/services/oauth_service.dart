@@ -192,6 +192,83 @@ class OAuthService {
     );
   }
 
+  /// Fetches profile details and merges them into [token] when possible.
+  Future<OAuthTokenModel> enrichWithProfile(
+    SocialPlatform platform,
+    OAuthTokenModel token,
+  ) async {
+    if (platform == SocialPlatform.twitter) {
+      return _fetchTwitterProfile(token);
+    }
+    if (platform == SocialPlatform.linkedin) {
+      return _fetchLinkedInProfile(token);
+    }
+    return token;
+  }
+
+  Future<OAuthTokenModel> _fetchTwitterProfile(OAuthTokenModel token) async {
+    try {
+      final resp = await http.get(
+        Uri.parse(
+          '${ApiEndpoints.twitterUserMe}?user.fields=profile_image_url',
+        ),
+        headers: {
+          'Authorization': 'Bearer ${token.accessToken}',
+          'Accept': 'application/json',
+        },
+      );
+      if (resp.statusCode != 200) return token;
+      final body = jsonDecode(resp.body) as Map<String, dynamic>;
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data == null) return token;
+      return OAuthTokenModel(
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        expiresAt: token.expiresAt,
+        userId: data['id'] as String? ?? token.userId,
+        username: data['username'] as String? ?? token.username,
+        displayName: data['name'] as String? ?? token.displayName,
+        avatarUrl: data['profile_image_url'] as String? ?? token.avatarUrl,
+        pageId: token.pageId,
+        pageToken: token.pageToken,
+      );
+    } catch (_) {
+      return token;
+    }
+  }
+
+  Future<OAuthTokenModel> _fetchLinkedInProfile(OAuthTokenModel token) async {
+    try {
+      final resp = await http.get(
+        Uri.parse(
+          '${ApiEndpoints.linkedinMe}?projection=(id,localizedFirstName,localizedLastName,vanityName)',
+        ),
+        headers: {
+          'Authorization': 'Bearer ${token.accessToken}',
+          'Accept': 'application/json',
+        },
+      );
+      if (resp.statusCode != 200) return token;
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final first = data['localizedFirstName'] as String? ?? '';
+      final last = data['localizedLastName'] as String? ?? '';
+      final displayName = [first, last].where((s) => s.isNotEmpty).join(' ');
+      return OAuthTokenModel(
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        expiresAt: token.expiresAt,
+        userId: data['id'] as String? ?? token.userId,
+        username: data['vanityName'] as String? ?? token.username,
+        displayName: displayName.isEmpty ? token.displayName : displayName,
+        avatarUrl: token.avatarUrl,
+        pageId: token.pageId,
+        pageToken: token.pageToken,
+      );
+    } catch (_) {
+      return token;
+    }
+  }
+
   /// Refresh an existing token using its refresh token.
   Future<OAuthTokenModel?> refresh({
     required SocialPlatform platform,

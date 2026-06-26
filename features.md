@@ -30,9 +30,9 @@
 | GoRouter navigation | Shell route + nested routes for all features | **Implemented** | 15+ named routes |
 | Bottom navigation (5 tabs) | Home · Calendar · Comments · Posts · Settings | **Implemented** | Posting Log tab removed vs original spec |
 | AI Writer route (`/ai-writer`) | Full-screen AI prompt studio | **Implemented** | Reachable from dashboard, posts, settings |
-| Posting Log route (`/logs`) | Global posting history page | **Partial** | Page exists; no in-app nav link |
+| Posting Log route (`/logs`) | Global posting history page | **Implemented** | Reachable from Settings |
 | 404 error page | Unknown route fallback | **Implemented** | |
-| BLoC debug observer | State transition logging | **Pending** | Not registered in `main.dart` |
+| BLoC debug observer | State transition logging | **Implemented** | `AppBlocObserver` in `main.dart` |
 | WorkManager background tasks | Scheduled API posting + token refresh | **Scheduled 2027** | Dependency + wiring not started |
 
 ---
@@ -44,13 +44,13 @@
 | Drift SQLite database | 7 tables + 5 DAOs + seed data on create | **Implemented** | Schema v2 (hashtags migration) |
 | Dependency injection (GetIt) | Manual `injection_container.dart` | **Implemented** | Injectable annotations present but codegen not used |
 | Predefined comment seed data | 8 categories × 5 comments | **Implemented** | Seeded on `onCreate` |
-| NotificationService | 3 channels, schedule/cancel, timezone-aware | **Implemented** | Tap → deep link not wired |
+| NotificationService | 3 channels, schedule/cancel, timezone-aware | **Implemented** | Tap → `/posts/:id` in `main.dart` |
 | ClipboardService | Copy + haptic + snackbar feedback | **Implemented** | Used in comments + AI writer |
 | SecureStorageService | AES-256 OAuth token storage | **Implemented** | |
-| Settings persistence | SharedPreferences JSON wrapper | **Implemented** | Several toggles saved but not consumed |
+| Settings persistence | SharedPreferences JSON wrapper | **Implemented** | All toggles consumed by features |
 | PromptDataSource | AI template, presets, last config | **Implemented** | SharedPreferences |
 | HashtagService | Extract, record, rank hashtag usage | **Implemented** | |
-| OAuthService | Twitter PKCE + LinkedIn/FB code exchange | **Partial** | No profile/page API calls after auth |
+| OAuthService | Twitter PKCE + LinkedIn/FB code exchange | **Partial** | Profile fetch for Twitter/LinkedIn; FB page picker pending |
 | DeepLinkHandler | OAuth redirect via `app_links` | **Implemented** | |
 | Dio HTTP client + auth interceptor | Centralized API layer | **Scheduled 2027** | Raw `http` used for OAuth only |
 | NetworkInfo (connectivity check) | Online/offline detection | **Scheduled 2027** | |
@@ -69,8 +69,8 @@
 | Copy to clipboard | Tap/copy icon → clipboard + usage count++ | **Implemented** | |
 | Toggle favorite | Heart toggle per comment | **Implemented** | |
 | Global comment search | `SearchDelegate` across all comments | **Implemented** | From categories app bar |
-| Swipe to delete | Dismissible with confirm dialog | **Partial** | No Undo SnackBar |
-| Category drag-reorder | Reorder custom categories | **Pending** | |
+| Swipe to delete | Dismissible with undo SnackBar | **Implemented** | Restore via `CreateComment` on undo |
+| Category drag-reorder | Reorder custom categories | **Implemented** | `SliverReorderableList` — custom categories only |
 | Lottie empty states | Animated empty placeholders | **Scheduled 2027** | Custom placeholders used today |
 | Shimmer loading skeletons | Skeleton grid while loading | **Scheduled 2027** | `LoadingState` exists elsewhere |
 
@@ -93,11 +93,11 @@
 | Calendar date prefill | `?prefillDate` on create route | **Implemented** | |
 | AI response prefill | `AiPostPrefill` → form fields | **Implemented** | |
 | Hashtag suggestion strip | Usage-ranked chips in post form | **Implemented** | Records on save |
-| Duplicate post | Clone as new draft | **Partial** | Use case in DI; no UI button |
-| Image attachments | `image_picker` attach files | **Partial** | DB field exists; no form UI |
-| Pull-to-refresh on post list | Refresh stream | **Partial** | `onRefresh` callback is empty |
-| Default platforms from settings | Pre-select platforms on new post | **Partial** | Setting saved; form ignores it |
-| Reminder offer after scheduling | Dialog → navigate to reminders | **Partial** | `RemindersPage` doesn't read `extra` prefill |
+| Duplicate post | Clone as new draft | **Implemented** | Button on `PostDetailPage` |
+| Image attachments | `image_picker` attach files | **Implemented** | Add/remove images in create/edit form |
+| Pull-to-refresh on post list | Refresh stream | **Implemented** | `PostListReload` event |
+| Default platforms from settings | Pre-select platforms on new post | **Implemented** | `PostFormCubit.applyDefaultPlatforms` |
+| Reminder offer after scheduling | Dialog → navigate to reminders | **Implemented** | Router passes prefill; form auto-opens |
 | Publish via API | Auto-post to connected platforms | **Scheduled 2027** | No `PostRemoteDataSource` |
 | Publish via API button on detail | Per-platform API publish action | **Scheduled 2027** | |
 
@@ -110,11 +110,11 @@
 | Log data layer (CRUD + streams) | `LogDao`, repository, models | **Implemented** | Auto-created on manual mark-posted |
 | Inline logs on post detail | Per-post log section | **Implemented** | `LogCubit` on `PostDetailPage` |
 | Dashboard recent activity | Last 8 log entries | **Implemented** | |
-| Global posting log page | All logs with platform + status filters | **Partial** | Built; route orphaned (no nav link) |
-| Per-post log detail page | All logs grouped for one post | **Partial** | Route exists; not linked from detail |
+| Global posting log page | All logs with platform + status filters | **Implemented** | Linked from Settings |
+| Per-post log detail page | All logs grouped for one post | **Implemented** | History button on `PostDetailPage` |
 | Log tile (platform, status, method, URL) | Visual log entry row | **Implemented** | External URL for API posts only |
-| Update log status | Edit pending / failed / skipped | **Pending** | Use case not implemented |
-| Platform log row widget | Compact per-platform status dots | **Pending** | |
+| Update log status | Edit pending / failed / skipped | **Implemented** | `UpdateLogStatus` + `LogTile` menu/bottom sheet |
+| Platform log row widget | Compact per-platform status dots | **Implemented** | `PlatformLogRow` on `PostDetailPage` |
 | API posting log entries | `method: api` with external URL | **Scheduled 2027** | Only manual logs today |
 
 ---
@@ -127,12 +127,12 @@
 | Upcoming / past sections | Sorted by `scheduledAt` | **Implemented** | |
 | Enable / disable toggle | Schedules or cancels notification | **Implemented** | |
 | Repeat types | none · daily · weekly · custom days | **Implemented** | Wired to `NotificationService` |
-| Link reminder to post | Optional `postId` foreign key | **Partial** | No post-picker UI; prefill broken |
+| Link reminder to post | Optional `postId` foreign key | **Implemented** | Post dropdown in `ReminderFormSheet` |
 | Local notification scheduling | `flutter_local_notifications` + timezone | **Implemented** | Payload = `postId` |
-| Notification tap → deep link | Navigate to post on tap | **Pending** | `onTap` not wired in `main.dart` |
-| Settings: enable notifications gate | Master toggle respected by scheduler | **Partial** | Saved; not checked by `ReminderCubit` |
-| Settings: reminder lead time | Notify X minutes before post time | **Partial** | Slider saved; not used when scheduling |
-| Auto-suggest reminder on scheduled post | Dialog after saving post | **Partial** | Dialog works; navigation prefill broken |
+| Notification tap → deep link | Navigate to post on tap | **Implemented** | `NotificationService.init(onTap: …)` |
+| Settings: enable notifications gate | Master toggle respected by scheduler | **Implemented** | `ReminderBloc` checks `enableNotifications` |
+| Settings: reminder lead time | Notify X minutes before post time | **Implemented** | `_notificationAt()` in `ReminderBloc` |
+| Auto-suggest reminder on scheduled post | Dialog after saving post | **Implemented** | Prefill + auto-open form via router `extra` |
 
 ---
 
@@ -145,11 +145,11 @@
 | Twitter OAuth 2.0 PKCE | `flutter_appauth` authorization flow | **Partial** | Needs production credentials + device test |
 | LinkedIn OAuth 2.0 | Code exchange via HTTP | **Partial** | No profile fetch after token |
 | Facebook OAuth 2.0 | Code exchange via HTTP | **Partial** | No page list / page token picker |
-| Token refresh | Refresh token exchange | **Partial** | Logic exists; not auto-triggered |
-| Profile fetch (username, avatar) | GET /me per platform | **Scheduled 2027** | Token model fields never populated |
+| Token refresh | Refresh token exchange | **Implemented** | `AuthRepositoryImpl` + `ensureFreshToken` |
+| Profile fetch (username, avatar) | GET /me per platform | **Partial** | Twitter/LinkedIn enriched in `OAuthService`; needs device test |
 | Facebook page picker | Select page + store page token | **Scheduled 2027** | |
-| Settings: enable API posting toggle | Master switch for auto-posting | **Partial** | Saved; nothing reads it |
-| Settings: auto-refresh tokens toggle | Background token refresh | **Partial** | Saved; not enforced |
+| Settings: enable API posting toggle | Master switch for auto-posting | **Implemented** | Gated in `PublishViaApi` use case |
+| Settings: auto-refresh tokens toggle | Background token refresh | **Implemented** | `AuthRepositoryImpl` on load/connect |
 
 ---
 
@@ -176,11 +176,11 @@
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
 | Theme mode picker | System · Light · Dark | **Implemented** | |
-| Default platforms selector | Pre-select for new posts | **Partial** | Saved; post form doesn't consume |
-| Enable notifications toggle | Master notification switch | **Partial** | Not enforced by reminder scheduler |
-| Reminder lead time slider | 0–60 minutes before post | **Partial** | Not used when scheduling |
-| Enable API posting toggle | Gate for auto-posting features | **Partial** | Not enforced (no API posting) |
-| Auto-refresh tokens toggle | Background OAuth refresh | **Partial** | Not enforced |
+| Default platforms selector | Pre-select for new posts | **Implemented** | Consumed in `CreateEditPostPage` |
+| Enable notifications toggle | Master notification switch | **Implemented** | `ReminderBloc` respects toggle |
+| Reminder lead time slider | 0–60 minutes before post | **Implemented** | Applied in notification scheduling |
+| Enable API posting toggle | Gate for auto-posting features | **Implemented** | `PublishViaApi` returns validation error when off |
+| Auto-refresh tokens toggle | Background OAuth refresh | **Implemented** | `AuthRepositoryImpl` |
 | Connected accounts link | → Social accounts page | **Implemented** | |
 | Reminders link | → Reminders page | **Implemented** | |
 | AI Post Writer link | → AI prompt studio | **Implemented** | |
@@ -215,7 +215,7 @@
 |---------|-------------|--------|-------|
 | Hashtag suggestions table | Usage-ranked history in Drift | **Implemented** | Schema v2 migration |
 | Record hashtag usage on post save | Increment counts from content | **Implemented** | |
-| Suggestion strip in post form | Horizontal chips from history | **Implemented** | `HashtagSuggestionsStrip` |
+| Suggestion strip in post form | Horizontal chips from history | **Implemented** | Tap to add; long-press to copy |
 | Extract hashtags / mentions | Regex parsing utility | **Implemented** | `HashtagService` |
 | Dedicated hashtag management page | Browse / edit / delete history | **Scheduled 2027** | Strip-only UI today |
 
@@ -239,10 +239,10 @@
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
 | PostRemoteDataSource | Twitter v2 · LinkedIn · Facebook Graph API | **Scheduled 2027** | File does not exist |
-| PublishViaApi use case | Token → API call → log entry | **Scheduled 2027** | |
+| PublishViaApi use case | Token → API call → log entry | **Partial** | Gated stub; no remote datasource yet |
 | Dio client + per-platform auth interceptor | Bearer token injection | **Scheduled 2027** | |
 | WorkManager periodic posting | Check due posts every 15 min | **Scheduled 2027** | |
-| Auto token refresh before API calls | Refresh expired tokens | **Scheduled 2027** | |
+| Auto token refresh before API calls | Refresh expired tokens | **Implemented** | `ensureFreshToken` in auth repo |
 | Posting result notifications | Success / failure alerts | **Scheduled 2027** | Service method exists; never called |
 | Daily posting summary notification | End-of-day digest channel | **Scheduled 2027** | Channel created; unused |
 | Scheduled post executor for recurring posts | Auto-create next occurrence | **Scheduled 2027** | Recurring data stored; no executor |
@@ -257,7 +257,7 @@
 | Lottie animations | Empty states on all list pages | **Scheduled 2027** | Not in `pubspec.yaml` |
 | Shimmer skeletons | Loading placeholders on all pages | **Scheduled 2027** | Partial use on calendar only |
 | App icon + splash screen | Branded launch experience | **Scheduled 2027** | |
-| Strict `analysis_options.yaml` lints | Zero-warning CI target | **Pending** | ~19 info-level lints today |
+| Strict `analysis_options.yaml` lints | Zero-warning CI target | **Pending** | 6 info-level lints today |
 | Windows desktop entry point | `main_windows.dart` + window manager | **Scheduled 2027** | Flutter Windows target exists |
 | Cached network images for avatars | OAuth profile pictures | **Scheduled 2027** | Dependency present; avatars never fetched |
 | Injectable / Freezed codegen | Replace manual DI + Equatable states | **Scheduled 2027** | Annotations exist; manual wiring used |
@@ -273,21 +273,21 @@
 
 | Area | Implemented | Partial | Pending | Scheduled 2027 |
 |------|:-----------:|:-------:|:-------:|:--------------:|
-| Navigation & Shell | 6 | 1 | 1 | 1 |
+| Navigation & Shell | 8 | 0 | 0 | 1 |
 | Foundation & Services | 9 | 1 | 0 | 4 |
-| Comment Templates | 8 | 1 | 1 | 2 |
-| Posts Manager | 13 | 5 | 0 | 2 |
-| Posting Log | 4 | 2 | 2 | 1 |
-| Reminders | 5 | 4 | 1 | 0 |
-| Social Auth | 2 | 4 | 0 | 2 |
+| Comment Templates | 10 | 0 | 0 | 2 |
+| Posts Manager | 18 | 0 | 0 | 2 |
+| Posting Log | 8 | 0 | 0 | 1 |
+| Reminders | 9 | 0 | 0 | 0 |
+| Social Auth | 4 | 3 | 0 | 2 |
 | Dashboard | 9 | 0 | 0 | 2 |
-| Settings | 6 | 5 | 0 | 1 |
+| Settings | 11 | 0 | 0 | 1 |
 | AI Post Writer | 11 | 0 | 0 | 1 |
 | Hashtags | 4 | 0 | 0 | 1 |
 | Calendar | 5 | 0 | 0 | 1 |
-| API Auto-Posting | 0 | 0 | 0 | 8 |
+| API Auto-Posting | 1 | 1 | 0 | 6 |
 | Polish & Platform | 0 | 0 | 1 | 12 |
-| **Totals** | **82** | **23** | **6** | **39** |
+| **Totals** | **107** | **5** | **1** | **35** |
 
 ---
 
@@ -297,10 +297,10 @@ The following are explicitly targeted for the **2027 release cycle**:
 
 1. **API auto-posting** — Full Twitter / LinkedIn / Facebook publish pipeline with WorkManager
 2. **OAuth completion** — Profile fetch, Facebook page picker, auto token refresh
-3. **Settings integration** — Wire all saved toggles (notifications, lead time, default platforms, API posting)
-4. **Posting log navigation** — Restore bottom-nav or settings link to `/logs`
-5. **Notification deep links** — Tap reminder → open linked post
-6. **Post attachments UI** — Image picker in create/edit form
+3. **Settings integration** — ✅ All toggles wired (notifications, lead time, default platforms, API posting gate)
+4. **Posting log navigation** — Optional bottom-nav tab (Settings link exists today)
+5. **Notification deep links** — ✅ Wired (`main.dart` → `/posts/:id`)
+6. **Post attachments UI** — ✅ Image picker in create/edit form
 7. **Production polish** — Lottie, shimmer, app icon, splash, tests
 8. **Windows desktop** — Dedicated entry point and window management
 9. **Platform expansion** — Instagram, TikTok, or WhatsApp Business API

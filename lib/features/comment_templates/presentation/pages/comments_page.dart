@@ -148,14 +148,9 @@ class _CommentsViewState extends State<_CommentsView> {
                     }
                   },
                   onEdit: () => _showEditComment(context, c),
-                  onDelete: () async {
-                    final ok = await cubit.remove(c.id);
-                    if (ok && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Comment deleted')),
-                      );
-                    }
-                  },
+                  onDelete: () => _confirmAndDelete(context, c),
+                  onSwipeDelete: (comment) =>
+                      _deleteWithUndo(context, comment),
                 );
               },
             );
@@ -223,5 +218,81 @@ class _CommentsViewState extends State<_CommentsView> {
     await clipboard.copyText(context, c.text);
     if (!context.mounted) return;
     await context.read<CommentCubit>().copy(c);
+  }
+
+  Future<void> _confirmAndDelete(BuildContext context, Comment c) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Comment?'),
+        content: const Text(
+          'This comment will be permanently removed. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await _deleteWithUndo(context, c);
+  }
+
+  Future<void> _deleteWithUndo(BuildContext context, Comment c) async {
+    final cubit = context.read<CommentCubit>();
+    final deleted = Comment(
+      id: c.id,
+      categoryId: c.categoryId,
+      text: c.text,
+      tags: List<String>.from(c.tags),
+      isFavorite: c.isFavorite,
+      usageCount: c.usageCount,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    );
+
+    final ok = await cubit.remove(c.id);
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not delete comment')),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Comment deleted'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            final restored = await getIt<CreateComment>()(
+              CreateCommentParams(
+                categoryId: deleted.categoryId,
+                text: deleted.text,
+                tags: deleted.tags,
+              ),
+            );
+            if (!context.mounted) return;
+            restored.fold(
+              (_) => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Could not restore comment')),
+              ),
+              (_) => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Comment restored')),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

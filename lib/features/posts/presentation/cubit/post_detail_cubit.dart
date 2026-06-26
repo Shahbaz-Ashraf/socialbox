@@ -5,6 +5,7 @@ import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/social_post.dart';
 import '../../domain/usecases/post_date_usecases.dart';
 import '../../domain/usecases/post_usecases.dart';
+import '../../domain/usecases/publish_via_api.dart';
 
 abstract class PostDetailState extends Equatable {
   const PostDetailState();
@@ -52,10 +53,12 @@ class PostDetailCubit extends Cubit<PostDetailState> {
     required MarkPostedManually markPostedManually,
     required DeletePost deletePost,
     required DuplicatePost duplicatePost,
+    required PublishViaApi publishViaApi,
   })  : _getPostById = getPostById,
         _markPostedManually = markPostedManually,
         _deletePost = deletePost,
         _duplicatePost = duplicatePost,
+        _publishViaApi = publishViaApi,
         super(const PostDetailInitial());
 
   final String postId;
@@ -63,6 +66,7 @@ class PostDetailCubit extends Cubit<PostDetailState> {
   final MarkPostedManually _markPostedManually;
   final DeletePost _deletePost;
   final DuplicatePost _duplicatePost;
+  final PublishViaApi _publishViaApi;
 
   Future<void> load() async {
     emit(const PostDetailLoading());
@@ -70,6 +74,26 @@ class PostDetailCubit extends Cubit<PostDetailState> {
     r.fold(
       (f) => emit(PostDetailError(f.message)),
       (p) => emit(PostDetailLoaded(p)),
+    );
+  }
+
+  Future<String?> publishViaApi({required SocialPlatform platform}) async {
+    final current = state;
+    if (current is! PostDetailLoaded) return 'Post not loaded.';
+    emit(PostDetailActionInProgress(current.post));
+    final r = await _publishViaApi(PublishViaApiParams(
+      postId: postId,
+      platform: platform,
+    ));
+    return r.fold(
+      (f) {
+        emit(PostDetailLoaded(current.post));
+        return f.message;
+      },
+      (_) async {
+        await load();
+        return null;
+      },
     );
   }
 

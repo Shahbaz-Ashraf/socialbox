@@ -148,6 +148,44 @@ class CategoryCubit extends Cubit<CategoryState> {
 
   Future<Either<Failure, Unit>> remove(String id) => deleteCategory(id);
 
+  /// Reorders user-defined categories and persists new [sortOrder] values.
+  /// Predefined categories are ignored.
+  Future<void> reorderCustom(int oldIndex, int newIndex) async {
+    final cur = state;
+    if (cur is! CategoryLoaded) return;
+
+    final custom = cur.categories.where((c) => !c.isPredefined).toList();
+    if (oldIndex < 0 ||
+        oldIndex >= custom.length ||
+        newIndex < 0 ||
+        newIndex >= custom.length) {
+      return;
+    }
+
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = custom.removeAt(oldIndex);
+    custom.insert(newIndex, item);
+
+    final predefinedCount =
+        cur.categories.where((c) => c.isPredefined).length;
+    final updates = <Future<bool>>[];
+    for (var i = 0; i < custom.length; i++) {
+      final c = custom[i];
+      final newOrder = predefinedCount + i;
+      if (c.sortOrder == newOrder) continue;
+      updates.add(edit(c.copyWith(sortOrder: newOrder)));
+    }
+
+    // Optimistic UI while persisting
+    final predefined =
+        cur.categories.where((c) => c.isPredefined).toList();
+    emit(cur.copyWith(categories: [...predefined, ...custom]));
+
+    for (final u in updates) {
+      await u;
+    }
+  }
+
   String _message(Failure f) => f.message;
 
   @override

@@ -13,6 +13,8 @@ class LogLocalDataSource {
   Stream<List<PostingLogRow>> watchForPost(String postId) =>
       _dao.watchLogsForPost(postId);
   Future<void> insert(PostingLogsTableCompanion entry) => _dao.insertLog(entry);
+  Future<PostingLogRow?> getById(String id) => _dao.getLogById(id);
+  Future<bool> update(PostingLogsTableCompanion entry) => _dao.updateLog(entry);
   Future<int> delete(String id) => _dao.deleteLog(id);
   Future<int> deleteForPost(String postId) => _dao.deleteLogsForPost(postId);
 }

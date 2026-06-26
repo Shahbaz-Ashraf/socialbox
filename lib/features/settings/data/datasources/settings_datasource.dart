@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/app_settings.dart';
+import '../../domain/entities/app_theme_mode.dart';
 
 class SettingsDataSource {
   SettingsDataSource(this._prefs);
@@ -17,9 +17,7 @@ class SettingsDataSource {
     try {
       final map = jsonDecode(raw) as Map<String, dynamic>;
       return AppSettings(
-        themeMode: ThemeMode.values.firstWhere(
-            (m) => m.name == map['themeMode'],
-            orElse: () => ThemeMode.system),
+        themeMode: AppThemeModeX.fromName(map['themeMode'] as String?),
         defaultPlatforms:
             ((map['defaultPlatforms'] as List?) ?? const [])
                 .map((n) => SocialPlatformX.fromName(n as String))

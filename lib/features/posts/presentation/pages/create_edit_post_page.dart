@@ -16,6 +16,7 @@ import '../../../ai_prompts/domain/entities/prompt_config.dart';
 import '../../../ai_prompts/presentation/widgets/paste_ai_response_sheet.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
+import '../../../hashtags/presentation/cubit/hashtag_suggestions_cubit.dart';
 import '../../../hashtags/presentation/widgets/hashtag_suggestions_strip.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../../domain/entities/social_post.dart';
@@ -265,9 +266,14 @@ class _FormViewState extends State<_FormView> {
                 ),
                 const SizedBox(height: 16),
                 const _SectionLabel('Tags'),
-                HashtagSuggestionsStrip(
-                  existing: state.tags,
-                  onAdd: cubit.addTag,
+                BlocProvider(
+                  create: (_) => getIt<HashtagSuggestionsCubit>(),
+                  child: HashtagSuggestionsStrip(
+                    existing: state.tags,
+                    onAdd: cubit.addTag,
+                    onCopy: (tag) =>
+                        getIt<ClipboardService>().copyText(context, '#$tag'),
+                  ),
                 ),
                 if (state.tags.isNotEmpty)
                   Padding(
@@ -317,7 +323,7 @@ class _FormViewState extends State<_FormView> {
                       : () async {
                           HapticFeedback.lightImpact();
                           final saved = await cubit.submit();
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           if (saved != null) {
                             AppSnackbar.success(
                               context,
@@ -327,7 +333,7 @@ class _FormViewState extends State<_FormView> {
                                 saved.scheduledAt != null) {
                               await _offerReminder(context, saved);
                             }
-                            if (mounted) context.pop();
+                            if (context.mounted) context.pop();
                           } else {
                             AppSnackbar.error(
                               context,

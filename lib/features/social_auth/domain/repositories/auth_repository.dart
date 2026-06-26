@@ -13,6 +13,10 @@ abstract class AuthRepository {
   });
   Future<Either<Failure, Unit>> disconnect(SocialPlatform platform);
   Future<Either<Failure, ConnectedAccount>> refresh(SocialPlatform platform);
+  /// Returns a connected account, refreshing the token first when
+  /// [autoRefreshTokens] is enabled and the stored token is expired.
+  Future<Either<Failure, ConnectedAccount>> ensureFreshToken(
+      SocialPlatform platform);
   Future<String?> getClientId(SocialPlatform platform);
   Future<String?> getClientSecret(SocialPlatform platform);
   Future<Either<Failure, Unit>> saveCredentials(

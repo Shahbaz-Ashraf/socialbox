@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../../domain/usecases/post_usecases.dart';
+import '../../domain/usecases/publish_via_api.dart';
 import '../cubit/post_list_cubit.dart';
 
 abstract class PostListEvent extends Equatable {
@@ -44,22 +45,38 @@ class PostListMarkPosted extends PostListEvent {
   List<Object?> get props => [postId, platform, notes];
 }
 
+class PostListPublishViaApi extends PostListEvent {
+  const PostListPublishViaApi({
+    required this.postId,
+    required this.platform,
+  });
+
+  final String postId;
+  final SocialPlatform platform;
+
+  @override
+  List<Object?> get props => [postId, platform];
+}
+
 class PostListBloc extends Bloc<PostListEvent, PostListState> {
   PostListBloc({
     required this.repository,
     required this.markPostedManually,
     required this.deletePost,
+    required this.publishViaApi,
   }) : super(const PostListInitial()) {
     on<PostListLoad>(_onLoad);
     on<PostListReload>(_onReload);
     on<PostListDelete>(_onDelete);
     on<PostListMarkPosted>(_onMarkPosted);
+    on<PostListPublishViaApi>(_onPublishViaApi);
     add(const PostListLoad());
   }
 
   final PostRepository repository;
   final MarkPostedManually markPostedManually;
   final DeletePost deletePost;
+  final PublishViaApi publishViaApi;
 
   StreamSubscription? _sub;
 
@@ -103,6 +120,24 @@ class PostListBloc extends Bloc<PostListEvent, PostListState> {
     final current = state;
     if (current is PostListLoaded) {
       emit(current.copyWith(isActionInProgress: false));
+    }
+  }
+
+  Future<void> _onPublishViaApi(
+      PostListPublishViaApi event, Emitter<PostListState> emit) async {
+    final s = state;
+    if (s is! PostListLoaded) return;
+    emit(s.copyWith(isActionInProgress: true));
+    final result = await publishViaApi(PublishViaApiParams(
+      postId: event.postId,
+      platform: event.platform,
+    ));
+    final current = state;
+    if (current is PostListLoaded) {
+      emit(current.copyWith(
+        isActionInProgress: false,
+        actionMessage: result.fold((f) => f.message, (_) => null),
+      ));
     }
   }
 

@@ -1,18 +1,18 @@
-import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/domain/date_range.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../entities/social_post.dart';
 import '../repositories/post_repository.dart';
 
-class GetPostsInRange extends UseCase<List<SocialPost>, DateTimeRange> {
+class GetPostsInRange extends UseCase<List<SocialPost>, DateRange> {
   GetPostsInRange(this._repo);
   final PostRepository _repo;
 
   @override
-  Future<Either<Failure, List<SocialPost>>> call(DateTimeRange params) async {
+  Future<Either<Failure, List<SocialPost>>> call(DateRange params) async {
     final all = await _repo.getAllPosts();
     return all.fold(
       (f) => Left<Failure, List<SocialPost>>(f),

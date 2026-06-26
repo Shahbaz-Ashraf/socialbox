@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/extensions.dart';
 import '../../../../injection_container.dart';
+import '../../domain/entities/comment_category.dart';
 import '../../domain/repositories/comment_repository.dart';
 import '../../domain/usecases/comment_usecases.dart';
 import '../cubit/category_cubit.dart';
@@ -110,33 +112,231 @@ class _CategoriesView extends StatelessWidget {
 
 class _CategoryGrid extends StatelessWidget {
   const _CategoryGrid({required this.categories, required this.counts});
-  final List categories;
+  final List<CommentCategory> categories;
   final Map<String, int> counts;
 
   @override
   Widget build(BuildContext context) {
+    final predefined = categories.where((c) => c.isPredefined).toList();
+    final custom = categories.where((c) => !c.isPredefined).toList();
     final width = MediaQuery.of(context).size.width;
     final cols = width > 700 ? 3 : 2;
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: cols,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.05,
-      ),
-      itemCount: categories.length,
-      itemBuilder: (context, i) {
-        final c = categories[i];
-        return CategoryCard(
-          category: c,
-          commentCount: counts[c.id],
-          onTap: () => context.pushNamed(
-            RouteNames.comments,
-            pathParameters: {'categoryId': c.id},
+
+    return CustomScrollView(
+      slivers: [
+        if (predefined.isNotEmpty) ...[
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Built-in',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
           ),
-        );
-      },
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.05,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) {
+                  final c = predefined[i];
+                  return CategoryCard(
+                    category: c,
+                    commentCount: counts[c.id],
+                    onTap: () => context.pushNamed(
+                      RouteNames.comments,
+                      pathParameters: {'categoryId': c.id},
+                    ),
+                  );
+                },
+                childCount: predefined.length,
+              ),
+            ),
+          ),
+        ],
+        if (custom.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  const Text(
+                    'Your categories',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.drag_handle_rounded,
+                      size: 16, color: Theme.of(context).hintColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Drag to reorder',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).hintColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+            sliver: SliverReorderableList(
+              onReorder: (oldIndex, newIndex) =>
+                  context.read<CategoryCubit>().reorderCustom(oldIndex, newIndex),
+              itemBuilder: (context, i) {
+                final c = custom[i];
+                return ReorderableDelayedDragStartListener(
+                  key: ValueKey(c.id),
+                  index: i,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _ReorderableCategoryTile(
+                      category: c,
+                      commentCount: counts[c.id],
+                      onTap: () => context.pushNamed(
+                        RouteNames.comments,
+                        pathParameters: {'categoryId': c.id},
+                      ),
+                      onDelete: () => _confirmDeleteCategory(context, c),
+                    ),
+                  ),
+                );
+              },
+              itemCount: custom.length,
+            ),
+          ),
+        ] else
+          const SliverPadding(
+            padding: EdgeInsets.only(bottom: 96),
+            sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _confirmDeleteCategory(
+    BuildContext context,
+    CommentCategory category,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text(
+          'Delete "${category.name}" and all its comments? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final result = await context.read<CategoryCubit>().remove(category.id);
+    if (!context.mounted) return;
+    result.fold(
+      (f) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(f.message)),
+      ),
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Category deleted')),
+      ),
+    );
+  }
+}
+
+class _ReorderableCategoryTile extends StatelessWidget {
+  const _ReorderableCategoryTile({
+    required this.category,
+    required this.onTap,
+    required this.onDelete,
+    this.commentCount,
+  });
+
+  final CommentCategory category;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final int? commentCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ColorFromHex.fromHex(category.colorHex);
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: color.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.drag_handle_rounded,
+                  color: Theme.of(context).hintColor),
+              const SizedBox(width: 8),
+              Text(category.icon, style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      commentCount != null
+                          ? '$commentCount comment${commentCount == 1 ? '' : 's'}'
+                          : '—',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).hintColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Delete category',
+                icon: const Icon(Icons.delete_outline_rounded,
+                    color: Colors.redAccent),
+                onPressed: onDelete,
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

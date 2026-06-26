@@ -21,6 +21,27 @@ class CommentCategory extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  CommentCategory copyWith({
+    String? id,
+    String? name,
+    String? icon,
+    String? colorHex,
+    bool? isPredefined,
+    int? sortOrder,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) =>
+      CommentCategory(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        icon: icon ?? this.icon,
+        colorHex: colorHex ?? this.colorHex,
+        isPredefined: isPredefined ?? this.isPredefined,
+        sortOrder: sortOrder ?? this.sortOrder,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+
   @override
   List<Object?> get props =>
       [id, name, icon, colorHex, isPredefined, sortOrder];

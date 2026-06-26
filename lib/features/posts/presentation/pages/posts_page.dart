@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/social_post.dart';
 import '../bloc/post_list_bloc.dart';
@@ -27,7 +28,18 @@ class _PostsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
+    return BlocListener<PostListBloc, PostListState>(
+      listenWhen: (prev, curr) =>
+          curr is PostListLoaded &&
+          curr.actionMessage != null &&
+          (prev is! PostListLoaded ||
+              prev.actionMessage != curr.actionMessage),
+      listener: (context, state) {
+        if (state is PostListLoaded && state.actionMessage != null) {
+          AppSnackbar.info(context, state.actionMessage!);
+        }
+      },
+      child: DefaultTabController(
       length: 5,
       child: Scaffold(
         appBar: AppBar(
@@ -100,6 +112,7 @@ class _PostsView extends StatelessWidget {
             return const SizedBox.shrink();
           },
         ),
+      ),
       ),
     );
   }

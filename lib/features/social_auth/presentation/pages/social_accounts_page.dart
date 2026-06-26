@@ -5,8 +5,7 @@ import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/connected_account.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../cubit/auth_cubit.dart';
+import '../bloc/auth_bloc.dart';
 import '../widgets/platform_account_tile.dart';
 
 class SocialAccountsPage extends StatelessWidget {
@@ -15,7 +14,7 @@ class SocialAccountsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AuthCubit(getIt<AuthRepository>())..load(),
+      create: (_) => getIt<AuthBloc>()..add(const AuthLoadAccounts()),
       child: const _AccountsView(),
     );
   }
@@ -28,7 +27,7 @@ class _AccountsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Connected Accounts')),
-      body: BlocConsumer<AuthCubit, AuthState>(
+      body: BlocConsumer<AuthBloc, AuthState>(
         listenWhen: (a, b) => b is AuthConnected || b is AuthFailureState,
         listener: (context, state) {
           if (state is AuthConnected) {
@@ -91,12 +90,12 @@ class _AccountsView extends StatelessWidget {
   }
 
   Future<void> _connect(BuildContext context, SocialPlatform platform) async {
-    final authCubit = context.read<AuthCubit>();
+    final authBloc = context.read<AuthBloc>();
     final clientIdCtrl = TextEditingController(
-      text: await authCubit.getClientId(platform) ?? '',
+      text: await authBloc.getClientId(platform) ?? '',
     );
     final clientSecretCtrl = TextEditingController(
-      text: await authCubit.getClientSecret(platform) ?? '',
+      text: await authBloc.getClientSecret(platform) ?? '',
     );
     if (!context.mounted) return;
 
@@ -170,22 +169,24 @@ class _AccountsView extends StatelessWidget {
     if (credentials == null) return;
 
     if (!context.mounted) return;
-    await authCubit.saveCredentials(
+    await authBloc.saveCredentials(
       platform,
       clientId: credentials.clientId,
       clientSecret: credentials.clientSecret,
     );
     if (!context.mounted) return;
-    await context.read<AuthCubit>().connect(
-          platform,
-          clientId: credentials.clientId,
-          clientSecret: credentials.clientSecret,
+    context.read<AuthBloc>().add(
+          AuthConnect(
+            platform: platform,
+            clientId: credentials.clientId,
+            clientSecret: credentials.clientSecret,
+          ),
         );
   }
 
   Future<void> _refreshToken(
       BuildContext context, SocialPlatform platform) async {
-    final ok = await context.read<AuthCubit>().refresh(platform);
+    final ok = await context.read<AuthBloc>().refresh(platform);
     if (!context.mounted) return;
     if (ok) {
       AppSnackbar.success(
@@ -238,7 +239,7 @@ class _AccountsView extends StatelessWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await context.read<AuthCubit>().disconnect(platform);
+    context.read<AuthBloc>().add(AuthDisconnect(platform));
     if (context.mounted) {
       AppSnackbar.info(context, 'Disconnected from ${platform.displayName}');
     }

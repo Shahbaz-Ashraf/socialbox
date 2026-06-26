@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
 
 import '../../../../core/utils/platform_utils.dart';
+import 'app_theme_mode.dart';
 
 class AppSettings extends Equatable {
   const AppSettings({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = AppThemeMode.system,
     this.defaultPlatforms = const [],
     this.enableNotifications = true,
     this.enableApiPosting = false,
@@ -13,7 +13,7 @@ class AppSettings extends Equatable {
     this.autoRefreshTokens = true,
   });
 
-  final ThemeMode themeMode;
+  final AppThemeMode themeMode;
   final List<SocialPlatform> defaultPlatforms;
   final bool enableNotifications;
   final bool enableApiPosting;
@@ -21,7 +21,7 @@ class AppSettings extends Equatable {
   final bool autoRefreshTokens;
 
   AppSettings copyWith({
-    ThemeMode? themeMode,
+    AppThemeMode? themeMode,
     List<SocialPlatform>? defaultPlatforms,
     bool? enableNotifications,
     bool? enableApiPosting,

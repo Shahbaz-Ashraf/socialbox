@@ -27,11 +27,13 @@ class PostListLoaded extends PostListState {
     required this.posts,
     this.activeFilter,
     this.isActionInProgress = false,
+    this.actionMessage,
   });
 
   final List<SocialPost> posts;
   final PostStatus? activeFilter;
   final bool isActionInProgress;
+  final String? actionMessage;
 
   List<SocialPost> get visiblePosts {
     if (activeFilter == null) return posts;
@@ -42,17 +44,23 @@ class PostListLoaded extends PostListState {
     List<SocialPost>? posts,
     PostStatus? activeFilter,
     bool? isActionInProgress,
+    String? actionMessage,
     bool clearFilter = false,
+    bool clearActionMessage = false,
   }) =>
       PostListLoaded(
         posts: posts ?? this.posts,
         activeFilter:
             clearFilter ? null : (activeFilter ?? this.activeFilter),
         isActionInProgress: isActionInProgress ?? this.isActionInProgress,
+        actionMessage: clearActionMessage
+            ? null
+            : (actionMessage ?? this.actionMessage),
       );
 
   @override
-  List<Object?> get props => [posts, activeFilter, isActionInProgress];
+  List<Object?> get props =>
+      [posts, activeFilter, isActionInProgress, actionMessage];
 }
 
 class PostListError extends PostListState {

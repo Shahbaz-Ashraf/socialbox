@@ -476,7 +476,8 @@ class _ConfigTab extends StatelessWidget {
           title: 'Platform & Audience',
         ),
         DropdownButtonFormField<String>(
-          value: _dropdownValue(c.platform, PromptConfig.aiPlatforms),
+          key: ValueKey('platform-${c.platform}'),
+          initialValue: _dropdownValue(c.platform, PromptConfig.aiPlatforms),
           isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Platform',
@@ -491,7 +492,8 @@ class _ConfigTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: kTargetAudiences.contains(c.targetAudience)
+          key: ValueKey('audience-${c.targetAudience}'),
+          initialValue: kTargetAudiences.contains(c.targetAudience)
               ? c.targetAudience
               : null,
           isExpanded: true,
@@ -525,7 +527,8 @@ class _ConfigTab extends StatelessWidget {
           title: 'Voice & Style',
         ),
         DropdownButtonFormField<String>(
-          value: _dropdownValue(c.brandArchetype, kBrandArchetypes),
+          key: ValueKey('archetype-${c.brandArchetype}'),
+          initialValue: _dropdownValue(c.brandArchetype, kBrandArchetypes),
           isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Brand Archetype',
@@ -540,7 +543,8 @@ class _ConfigTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _dropdownValue(c.postGoal, kPostGoals),
+          key: ValueKey('goal-${c.postGoal}'),
+          initialValue: _dropdownValue(c.postGoal, kPostGoals),
           isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Post Goal',
@@ -554,7 +558,8 @@ class _ConfigTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _dropdownValue(
+          key: ValueKey('mode-${c.contentMode}'),
+          initialValue: _dropdownValue(
             c.contentMode.isEmpty ? kContentModes.first : c.contentMode,
             kContentModes,
           ),
@@ -571,7 +576,8 @@ class _ConfigTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _optionalDropdownValue(c.contentPillar, kContentPillars),
+          key: ValueKey('pillar-${c.contentPillar}'),
+          initialValue: _optionalDropdownValue(c.contentPillar, kContentPillars),
           isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Content Pillar (optional)',

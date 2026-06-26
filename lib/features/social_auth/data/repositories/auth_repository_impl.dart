@@ -2,15 +2,19 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../settings/domain/repositories/settings_repository.dart';
 import '../../domain/entities/connected_account.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/social_auth_datasource.dart';
 import '../services/oauth_service.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl(this._ds, this._oauth);
+  AuthRepositoryImpl(this._ds, this._oauth, this._settings);
   final SocialAuthDataSource _ds;
   final OAuthService _oauth;
+  final SettingsRepository _settings;
+
+  bool get _autoRefresh => _settings.getSettings().autoRefreshTokens;
 
   @override
   Future<Either<Failure, List<ConnectedAccount>>>
@@ -20,7 +24,15 @@ class AuthRepositoryImpl implements AuthRepository {
       final list = <ConnectedAccount>[];
       for (final p in SocialPlatform.values) {
         final t = tokens[p.name];
-        if (t != null && t.isConnected) {
+        if (t == null || !t.isConnected) continue;
+
+        if (_autoRefresh && t.isExpired && t.refreshToken != null) {
+          final refreshed = await refresh(p);
+          refreshed.fold(
+            (_) => list.add(ConnectedAccount.fromToken(p, t)),
+            list.add,
+          );
+        } else {
           list.add(ConnectedAccount.fromToken(p, t));
         }
       }
@@ -37,6 +49,17 @@ class AuthRepositoryImpl implements AuthRepository {
     String? clientSecret,
   }) async {
     try {
+      if (_autoRefresh) {
+        final existing = await _ds.getToken(platform);
+        if (existing != null &&
+            existing.isConnected &&
+            existing.isExpired &&
+            existing.refreshToken != null) {
+          final refreshed = await refresh(platform);
+          if (refreshed.isRight()) return refreshed;
+        }
+      }
+
       final token = await _oauth.authorizeAndExchange(
         platform: platform,
         clientId: clientId,
@@ -85,6 +108,29 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(unit);
     } catch (e) {
       return Left(DatabaseFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ConnectedAccount>> ensureFreshToken(
+      SocialPlatform platform) async {
+    try {
+      final stored = await _ds.getToken(platform);
+      if (stored == null || !stored.isConnected) {
+        return const Left(NotFoundFailure(message: 'Not connected.'));
+      }
+      final account = ConnectedAccount.fromToken(platform, stored);
+      if (!_autoRefresh || !account.isExpired) {
+        return Right(account);
+      }
+      if (stored.refreshToken == null) {
+        return const Left(
+          AuthFailure(message: 'Token expired — please reconnect.'),
+        );
+      }
+      return refresh(platform);
+    } catch (e) {
+      return Left(AuthFailure(message: e.toString()));
     }
   }
 

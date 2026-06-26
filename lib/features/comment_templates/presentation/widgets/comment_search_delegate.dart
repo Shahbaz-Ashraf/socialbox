@@ -76,10 +76,11 @@ class CommentSearchDelegate extends SearchDelegate {
                   trailing: IconButton(
                     icon: const Icon(Icons.copy_rounded),
                     onPressed: () async {
-                      final navigator = Navigator.of(ctx);
                       await getIt<ClipboardService>().copyText(ctx, c.text);
+                      if (!ctx.mounted) return;
                       await onCopied(c.id, c.text);
-                      if (navigator.mounted) close(ctx, null);
+                      if (!ctx.mounted) return;
+                      close(ctx, null);
                     },
                   ),
                 );

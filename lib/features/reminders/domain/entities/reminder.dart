@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../../../core/utils/platform_utils.dart';
 
@@ -32,13 +31,6 @@ class Reminder extends Equatable {
 
   bool get isUpcoming =>
       isEnabled && scheduledAt.isAfter(DateTime.now());
-
-  DateTimeComponents? get matchComponent => switch (repeat) {
-        ReminderRepeat.daily => DateTimeComponents.time,
-        ReminderRepeat.weekly => DateTimeComponents.dayOfWeekAndTime,
-        ReminderRepeat.custom => DateTimeComponents.dayOfWeekAndTime,
-        ReminderRepeat.none => null,
-      };
 
   @override
   List<Object?> get props => [

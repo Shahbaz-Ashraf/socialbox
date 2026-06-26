@@ -417,6 +417,10 @@ class LogDao extends DatabaseAccessor<AppDatabase> with _$LogDaoMixin {
         .get();
   }
 
+  Future<PostingLogRow?> getLogById(String id) =>
+      (select(postingLogsTable)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
   Future<bool> isPostedToday(String postId, String platform) async {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);

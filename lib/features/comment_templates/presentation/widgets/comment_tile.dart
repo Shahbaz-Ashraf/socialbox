@@ -11,6 +11,7 @@ class CommentTile extends StatelessWidget {
     required this.onToggleFavorite,
     required this.onEdit,
     required this.onDelete,
+    this.onSwipeDelete,
     this.clipboard,
   });
 
@@ -19,6 +20,7 @@ class CommentTile extends StatelessWidget {
   final VoidCallback onToggleFavorite;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<Comment>? onSwipeDelete;
   final ClipboardService? clipboard;
 
   @override
@@ -41,8 +43,8 @@ class CommentTile extends StatelessWidget {
           ],
         ),
       ),
-      confirmDismiss: (_) async => await _confirmDelete(context),
-      onDismissed: (_) => onDelete(),
+      confirmDismiss: (_) async => onSwipeDelete != null,
+      onDismissed: (_) => onSwipeDelete?.call(comment),
       child: Material(
         color: Theme.of(context).cardColor,
         child: InkWell(
@@ -184,23 +186,4 @@ class CommentTile extends StatelessWidget {
     }
   }
 
-  Future<bool> _confirmDelete(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Comment?'),
-        content: const Text(
-            'This comment will be permanently removed. This cannot be undone.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          FilledButton.tonal(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete')),
-        ],
-      ),
-    );
-    return ok ?? false;
-  }
 }

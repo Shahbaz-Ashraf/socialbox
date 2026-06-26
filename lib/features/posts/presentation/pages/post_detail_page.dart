@@ -12,7 +12,8 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
 import '../../../ai_prompts/domain/entities/prompt_config.dart';
 import '../../../posting_log/presentation/cubit/log_cubit.dart';
-import '../../../posting_log/presentation/widgets/log_tile.dart';
+import '../../../../core/widgets/log_tile.dart';
+import '../../../posting_log/presentation/widgets/platform_log_row.dart';
 import '../cubit/post_detail_cubit.dart';
 import '../widgets/post_status_badge.dart';
 
@@ -28,7 +29,10 @@ class PostDetailPage extends StatelessWidget {
           create: (_) => getIt<PostDetailCubit>(param1: postId)..load(),
         ),
         BlocProvider(
-          create: (_) => LogCubit(repository: getIt())..loadForPost(postId),
+          create: (_) => LogCubit(
+            repository: getIt(),
+            updateLogStatus: getIt(),
+          )..loadForPost(postId),
         ),
       ],
       child: _PostDetailView(postId: postId),
@@ -197,6 +201,9 @@ class _PostDetailView extends StatelessWidget {
                       (p) => _PlatformActionButton(
                         platform: p,
                         onOpen: () => launchUrl(Uri.parse(p.webUrl)),
+                        onPublishViaApi: isBusy
+                            ? null
+                            : () => _publishViaApi(context, cubit, p),
                         onMarkPosted: isBusy
                             ? null
                             : () => _markPosted(context, cubit, p),
@@ -236,15 +243,43 @@ class _PostDetailView extends StatelessWidget {
               BlocBuilder<LogCubit, LogState>(
                 builder: (context, logState) {
                   if (logState is LogLoaded) {
-                    if (logState.logs.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('No log entries yet.'),
-                      );
-                    }
                     return Column(
-                      children:
-                          logState.logs.map((l) => LogTile(log: l)).toList(),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PlatformLogRow(
+                          platforms: post.platforms,
+                          logs: logState.logs,
+                        ),
+                        const SizedBox(height: 12),
+                        if (logState.logs.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text('No log entries yet.'),
+                          )
+                        else
+                          ...logState.logs.map(
+                            (l) => LogTile(
+                              log: l,
+                              onStatusChanged: (status) async {
+                                final ok = await context
+                                    .read<LogCubit>()
+                                    .changeStatus(l.id, status);
+                                if (!context.mounted) return;
+                                if (ok) {
+                                  AppSnackbar.success(
+                                    context,
+                                    'Status updated to ${status.label}',
+                                  );
+                                } else {
+                                  AppSnackbar.error(
+                                    context,
+                                    'Could not update status',
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                      ],
                     );
                   }
                   return const Padding(
@@ -272,6 +307,25 @@ class _PostDetailView extends StatelessWidget {
       );
     } else {
       AppSnackbar.error(context, 'Could not duplicate post');
+    }
+  }
+
+  Future<void> _publishViaApi(
+    BuildContext context,
+    PostDetailCubit cubit,
+    SocialPlatform platform,
+  ) async {
+    HapticFeedback.lightImpact();
+    final message = await cubit.publishViaApi(platform: platform);
+    if (!context.mounted) return;
+    if (message != null) {
+      AppSnackbar.info(context, message);
+    } else {
+      AppSnackbar.success(
+        context,
+        'Published to ${platform.displayName}',
+      );
+      context.read<LogCubit>().loadForPost(postId);
     }
   }
 
@@ -368,11 +422,13 @@ class _PlatformActionButton extends StatelessWidget {
   const _PlatformActionButton({
     required this.platform,
     required this.onOpen,
+    this.onPublishViaApi,
     required this.onMarkPosted,
   });
 
   final SocialPlatform platform;
   final VoidCallback onOpen;
+  final VoidCallback? onPublishViaApi;
   final VoidCallback? onMarkPosted;
 
   @override
@@ -407,6 +463,17 @@ class _PlatformActionButton extends StatelessWidget {
             ),
             onPressed: onOpen,
           ),
+          if (onPublishViaApi != null)
+            IconButton(
+              tooltip: 'Publish via API',
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                Icons.cloud_upload_rounded,
+                size: 18,
+                color: platform.color,
+              ),
+              onPressed: onPublishViaApi,
+            ),
           IconButton(
             tooltip: 'Mark as posted',
             visualDensity: VisualDensity.compact,

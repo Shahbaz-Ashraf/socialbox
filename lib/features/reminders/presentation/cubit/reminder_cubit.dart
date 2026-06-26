@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/notification_service.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
+import '../../data/mappers/reminder_notification_mapper.dart';
 import '../../domain/entities/reminder.dart';
 import '../../domain/repositories/reminder_repository.dart';
 
@@ -62,6 +63,18 @@ class ReminderCubit extends Cubit<ReminderState> {
   bool get _notificationsEnabled =>
       settingsRepository.getSettings().enableNotifications;
 
+  /// Notification fires [reminderLeadMinutes] before [scheduledAt].
+  /// If that time is already past, schedule a few seconds from now.
+  DateTime _notificationAt(DateTime scheduledAt) {
+    final lead = settingsRepository.getSettings().reminderLeadMinutes;
+    final at = scheduledAt.subtract(Duration(minutes: lead));
+    final now = DateTime.now();
+    if (at.isBefore(now)) {
+      return now.add(const Duration(seconds: 5));
+    }
+    return at;
+  }
+
   void _subscribe() {
     _sub?.cancel();
     _sub = repository.watchAll().listen(
@@ -82,8 +95,8 @@ class ReminderCubit extends Cubit<ReminderState> {
               id: r.notificationId,
               title: r.title,
               body: r.body,
-              scheduledAt: r.scheduledAt,
-              matchComponent: r.matchComponent,
+              scheduledAt: _notificationAt(r.scheduledAt),
+              matchComponent: reminderMatchComponent(r),
               payload: r.postId,
             );
           }
@@ -104,8 +117,8 @@ class ReminderCubit extends Cubit<ReminderState> {
             id: reminder.notificationId,
             title: reminder.title,
             body: reminder.body,
-            scheduledAt: reminder.scheduledAt,
-            matchComponent: reminder.matchComponent,
+            scheduledAt: _notificationAt(reminder.scheduledAt),
+            matchComponent: reminderMatchComponent(reminder),
             payload: reminder.postId,
           );
         }
@@ -125,8 +138,8 @@ class ReminderCubit extends Cubit<ReminderState> {
           id: reminder.notificationId,
           title: reminder.title,
           body: reminder.body,
-          scheduledAt: reminder.scheduledAt,
-          matchComponent: reminder.matchComponent,
+          scheduledAt: _notificationAt(reminder.scheduledAt),
+          matchComponent: reminderMatchComponent(reminder),
           payload: reminder.postId,
         );
       }
@@ -153,8 +166,8 @@ class ReminderCubit extends Cubit<ReminderState> {
             id: updated.notificationId,
             title: updated.title,
             body: updated.body,
-            scheduledAt: updated.scheduledAt,
-            matchComponent: updated.matchComponent,
+            scheduledAt: _notificationAt(updated.scheduledAt),
+            matchComponent: reminderMatchComponent(updated),
             payload: updated.postId,
           );
         }

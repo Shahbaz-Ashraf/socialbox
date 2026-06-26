@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/posting_log.dart';
 import '../../domain/repositories/log_repository.dart';
+import '../../domain/usecases/log_usecases.dart';
 
 abstract class LogState extends Equatable {
   const LogState();
@@ -70,11 +71,16 @@ class LogError extends LogState {
 }
 
 class LogCubit extends Cubit<LogState> {
-  LogCubit({required this.repository}) : super(const LogInitial()) {
+  LogCubit({
+    required this.repository,
+    UpdateLogStatus? updateLogStatus,
+  })  : _updateLogStatus = updateLogStatus,
+        super(const LogInitial()) {
     _subscribe();
   }
 
   final LogRepository repository;
+  final UpdateLogStatus? _updateLogStatus;
   StreamSubscription? _sub;
 
   void _subscribe() {
@@ -118,6 +124,13 @@ class LogCubit extends Cubit<LogState> {
           ? s.copyWith(clearStatus: true)
           : s.copyWith(filterStatus: st));
     }
+  }
+
+  Future<bool> changeStatus(String logId, LogStatus status) async {
+    final useCase = _updateLogStatus;
+    if (useCase == null) return false;
+    final result = await useCase(UpdateLogStatusParams(id: logId, status: status));
+    return result.isRight();
   }
 
   @override

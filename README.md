@@ -32,3 +32,5 @@ View (pages/widgets) → ViewModel (Bloc/Cubit) → UseCase → Repository → D
 ```
 
 Features live under `lib/features/{name}/` with `data/`, `domain/`, `presentation/` layers.
+
+Shared UI widgets used across features (e.g. `log_tile.dart`, `app_snackbar.dart`) live in `lib/core/widgets/`.

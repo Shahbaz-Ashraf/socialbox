@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../../injection_container.dart';
+import '../../../posts/domain/entities/social_post.dart';
+import '../../../posts/domain/usecases/post_usecases.dart';
 import '../../domain/entities/reminder.dart';
 
 class ReminderFormSheet extends StatefulWidget {
@@ -30,6 +34,9 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
   late DateTime _scheduledAt;
   late ReminderRepeat _repeat;
   late List<int> _days;
+  String? _selectedPostId;
+  List<SocialPost> _posts = const [];
+  bool _loadingPosts = true;
 
   @override
   void initState() {
@@ -43,6 +50,17 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
         DateTime.now().add(const Duration(hours: 1));
     _repeat = r?.repeat ?? ReminderRepeat.none;
     _days = List<int>.from(r?.repeatDays ?? const []);
+    _selectedPostId = r?.postId ?? widget.linkedPostId;
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    final result = await getIt<GetAllPosts>()(const NoParams());
+    if (!mounted) return;
+    setState(() {
+      _loadingPosts = false;
+      _posts = result.getOrElse((_) => const []);
+    });
   }
 
   @override
@@ -93,6 +111,42 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                 labelText: 'Body (optional)',
                 border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 12),
+            InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Linked post (optional)',
+                border: OutlineInputBorder(),
+              ),
+              child: _loadingPosts
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    )
+                  : DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        isExpanded: true,
+                        value: _selectedPostId,
+                        hint: const Text('No linked post'),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('None'),
+                          ),
+                          ..._posts.map(
+                            (p) => DropdownMenuItem<String?>(
+                              value: p.id,
+                              child: Text(
+                                p.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _selectedPostId = v),
+                      ),
+                    ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -176,7 +230,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                     body: _bodyCtrl.text.trim().isEmpty
                         ? null
                         : _bodyCtrl.text.trim(),
-                    postId: widget.initial?.postId ?? widget.linkedPostId,
+                    postId: _selectedPostId,
                     scheduledAt: _scheduledAt,
                     repeat: _repeat,
                     repeatDays: _days,

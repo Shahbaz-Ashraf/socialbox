@@ -21,6 +21,7 @@ import 'features/hashtags/data/repositories/hashtag_repository_impl.dart';
 import 'features/hashtags/data/services/hashtag_service.dart';
 import 'features/hashtags/domain/repositories/hashtag_repository.dart';
 import 'features/hashtags/domain/usecases/hashtag_usecases.dart';
+import 'features/hashtags/presentation/cubit/hashtag_suggestions_cubit.dart';
 import 'features/posting_log/data/datasources/log_local_datasource.dart';
 import 'features/posting_log/data/repositories/log_repository_impl.dart';
 import 'features/posting_log/domain/repositories/log_repository.dart';
@@ -30,6 +31,7 @@ import 'features/posts/data/repositories/post_repository_impl.dart';
 import 'features/posts/domain/repositories/post_repository.dart';
 import 'features/posts/domain/usecases/post_date_usecases.dart';
 import 'features/posts/domain/usecases/post_usecases.dart';
+import 'features/posts/domain/usecases/publish_via_api.dart';
 import 'features/posts/presentation/bloc/post_list_bloc.dart';
 import 'features/posts/presentation/cubit/post_detail_cubit.dart';
 import 'features/reminders/data/datasources/reminder_local_datasource.dart';
@@ -37,6 +39,7 @@ import 'features/reminders/data/repositories/reminder_repository_impl.dart';
 import 'features/reminders/domain/repositories/reminder_repository.dart';
 import 'features/reminders/domain/usecases/reminder_date_usecases.dart';
 import 'features/reminders/domain/usecases/reminder_usecases.dart';
+import 'features/reminders/presentation/bloc/reminder_bloc.dart';
 import 'features/settings/data/datasources/settings_datasource.dart';
 import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/settings/domain/repositories/settings_repository.dart';
@@ -50,6 +53,7 @@ import 'features/social_auth/data/repositories/auth_repository_impl.dart';
 import 'features/social_auth/data/services/oauth_service.dart';
 import 'features/social_auth/domain/repositories/auth_repository.dart';
 import 'features/social_auth/domain/usecases/auth_usecases.dart';
+import 'features/social_auth/presentation/bloc/auth_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -115,6 +119,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
         getIt<SocialAuthDataSource>(),
         getIt<OAuthService>(),
+        getIt<SettingsRepository>(),
       ));
 
   // Hashtag Suggestions -----------------------------------------------
@@ -133,6 +138,9 @@ Future<void> configureDependencies() async {
       () => WatchTopHashtagSuggestions(getIt<HashtagRepository>()));
   getIt.registerFactory<ExtractHashtags>(
       () => ExtractHashtags(getIt<HashtagRepository>()));
+  getIt.registerFactory<HashtagSuggestionsCubit>(() => HashtagSuggestionsCubit(
+        watchTopHashtagSuggestions: getIt<WatchTopHashtagSuggestions>(),
+      ));
 
   // UseCases: Auth ----------------------------------------------------
   getIt.registerFactory<GetConnectedAccounts>(
@@ -140,6 +148,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<DisconnectPlatform>(() => DisconnectPlatform(getIt()));
   getIt.registerFactory<RefreshAccessToken>(
       () => RefreshAccessToken(getIt()));
+  getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<AuthRepository>()));
 
   // Comment Templates -------------------------------------------------
   getIt.registerLazySingleton<CommentLocalDataSource>(
@@ -180,6 +189,10 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<GetPostsInRange>(
       () => GetPostsInRange(getIt()));
   getIt.registerFactory<DuplicatePost>(() => DuplicatePost(getIt()));
+  getIt.registerFactory<PublishViaApi>(() => PublishViaApi(
+        getIt<SettingsRepository>(),
+        getIt<AuthRepository>(),
+      ));
 
   getIt.registerFactoryParam<PostDetailCubit, String, void>(
     (postId, _) => PostDetailCubit(
@@ -188,12 +201,14 @@ Future<void> configureDependencies() async {
       markPostedManually: getIt(),
       deletePost: getIt(),
       duplicatePost: getIt(),
+      publishViaApi: getIt(),
     ),
   );
   getIt.registerFactory<PostListBloc>(() => PostListBloc(
         repository: getIt<PostRepository>(),
         markPostedManually: getIt(),
         deletePost: getIt(),
+        publishViaApi: getIt(),
       ));
 
   // Posting Log ------------------------------------------------------
@@ -205,6 +220,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<GetLogsForPost>(() => GetLogsForPost(getIt()));
   getIt.registerFactory<GetAllLogs>(() => GetAllLogs(getIt()));
   getIt.registerFactory<CreateLogEntry>(() => CreateLogEntry(getIt()));
+  getIt.registerFactory<UpdateLogStatus>(() => UpdateLogStatus(getIt()));
   getIt.registerFactory<DeleteLog>(() => DeleteLog(getIt()));
 
   // Reminders --------------------------------------------------------
@@ -222,6 +238,11 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<ToggleReminder>(() => ToggleReminder(getIt()));
   getIt.registerFactory<GetRemindersInRange>(
       () => GetRemindersInRange(getIt()));
+  getIt.registerFactory<ReminderBloc>(() => ReminderBloc(
+        repository: getIt<ReminderRepository>(),
+        notificationService: getIt<NotificationService>(),
+        settingsRepository: getIt<SettingsRepository>(),
+      ));
 
   // Dashboard ---------------------------------------------------------
   getIt.registerFactory<GetDashboardStats>(() => GetDashboardStats(

@@ -9,6 +9,7 @@ import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/services/clipboard_service.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/app_settings.dart';
+import '../../domain/entities/app_theme_mode.dart';
 import '../cubit/settings_cubit.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -38,21 +39,21 @@ class _SettingsView extends StatelessWidget {
               _ThemeModeTile(
                 label: 'System default',
                 icon: Icons.brightness_auto_rounded,
-                value: ThemeMode.system,
+                value: AppThemeMode.system,
                 current: settings.themeMode,
                 onSelect: (v) => cubit.update(settings.copyWith(themeMode: v)),
               ),
               _ThemeModeTile(
                 label: 'Light',
                 icon: Icons.light_mode_rounded,
-                value: ThemeMode.light,
+                value: AppThemeMode.light,
                 current: settings.themeMode,
                 onSelect: (v) => cubit.update(settings.copyWith(themeMode: v)),
               ),
               _ThemeModeTile(
                 label: 'Dark',
                 icon: Icons.dark_mode_rounded,
-                value: ThemeMode.dark,
+                value: AppThemeMode.dark,
                 current: settings.themeMode,
                 onSelect: (v) => cubit.update(settings.copyWith(themeMode: v)),
               ),
@@ -303,9 +304,9 @@ class _ThemeModeTile extends StatelessWidget {
 
   final String label;
   final IconData icon;
-  final ThemeMode value;
-  final ThemeMode current;
-  final ValueChanged<ThemeMode> onSelect;
+  final AppThemeMode value;
+  final AppThemeMode current;
+  final ValueChanged<AppThemeMode> onSelect;
 
   @override
   Widget build(BuildContext context) {

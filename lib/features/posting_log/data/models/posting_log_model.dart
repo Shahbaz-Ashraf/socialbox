@@ -36,3 +36,33 @@ extension CreateLogParamsX on CreateLogParams {
         createdAt: DateTime.now(),
       );
 }
+
+extension PostingLogX on PostingLog {
+  PostingLogsTableCompanion toCompanion() => PostingLogsTableCompanion(
+        id: Value(id),
+        postId: Value(postId),
+        platform: Value(platform.name),
+        status: Value(status.name),
+        method: Value(method.name),
+        postedAt: Value(postedAt),
+        externalPostId: Value(externalPostId),
+        externalPostUrl: Value(externalPostUrl),
+        errorMessage: Value(errorMessage),
+        notes: Value(notes),
+        createdAt: Value(createdAt),
+      );
+
+  PostingLog copyWith({LogStatus? status}) => PostingLog(
+        id: id,
+        postId: postId,
+        platform: platform,
+        status: status ?? this.status,
+        method: method,
+        postedAt: postedAt,
+        externalPostId: externalPostId,
+        externalPostUrl: externalPostUrl,
+        errorMessage: errorMessage,
+        notes: notes,
+        createdAt: createdAt,
+      );
+}

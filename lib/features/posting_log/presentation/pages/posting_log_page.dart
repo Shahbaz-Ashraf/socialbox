@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
 import '../../domain/repositories/log_repository.dart';
 import '../cubit/log_cubit.dart';
 import '../widgets/log_filter_bar.dart';
-import '../widgets/log_tile.dart';
+import '../../../../core/widgets/log_tile.dart';
 
 class PostingLogPage extends StatelessWidget {
   const PostingLogPage({super.key});
@@ -13,8 +15,10 @@ class PostingLogPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          LogCubit(repository: getIt<LogRepository>()),
+      create: (_) => LogCubit(
+        repository: getIt<LogRepository>(),
+        updateLogStatus: getIt(),
+      ),
       child: Scaffold(
         appBar: AppBar(title: const Text('Posting Log')),
         body: Column(
@@ -48,7 +52,29 @@ class PostingLogPage extends StatelessWidget {
                     return ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       itemCount: visible.length,
-                      itemBuilder: (_, i) => LogTile(log: visible[i]),
+                      itemBuilder: (context, i) {
+                        final log = visible[i];
+                        return LogTile(
+                          log: log,
+                          onStatusChanged: (status) async {
+                            final ok = await context
+                                .read<LogCubit>()
+                                .changeStatus(log.id, status);
+                            if (!context.mounted) return;
+                            if (ok) {
+                              AppSnackbar.success(
+                                context,
+                                'Status updated to ${status.label}',
+                              );
+                            } else {
+                              AppSnackbar.error(
+                                context,
+                                'Could not update status',
+                              );
+                            }
+                          },
+                        );
+                      },
                     );
                   }
                   return const SizedBox.shrink();

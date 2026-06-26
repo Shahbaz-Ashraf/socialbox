@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/widgets/log_tile.dart';
 import '../../../../injection_container.dart';
 import '../../domain/repositories/log_repository.dart';
 import '../cubit/log_cubit.dart';
 import '../widgets/log_filter_bar.dart';
-import '../widgets/log_tile.dart';
 
 class PostLogDetailPage extends StatelessWidget {
   const PostLogDetailPage({super.key, required this.postId});
@@ -14,8 +16,10 @@ class PostLogDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          LogCubit(repository: getIt<LogRepository>())..loadForPost(postId),
+      create: (_) => LogCubit(
+        repository: getIt<LogRepository>(),
+        updateLogStatus: getIt(),
+      )..loadForPost(postId),
       child: Scaffold(
         appBar: AppBar(title: const Text('Post Logs')),
         body: Column(
@@ -32,7 +36,29 @@ class PostLogDetailPage extends StatelessWidget {
                     return ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       itemCount: logs.length,
-                      itemBuilder: (_, i) => LogTile(log: logs[i]),
+                      itemBuilder: (context, i) {
+                        final log = logs[i];
+                        return LogTile(
+                          log: log,
+                          onStatusChanged: (status) async {
+                            final ok = await context
+                                .read<LogCubit>()
+                                .changeStatus(log.id, status);
+                            if (!context.mounted) return;
+                            if (ok) {
+                              AppSnackbar.success(
+                                context,
+                                'Status updated to ${status.label}',
+                              );
+                            } else {
+                              AppSnackbar.error(
+                                context,
+                                'Could not update status',
+                              );
+                            }
+                          },
+                        );
+                      },
                     );
                   }
                   return const Center(child: CircularProgressIndicator());

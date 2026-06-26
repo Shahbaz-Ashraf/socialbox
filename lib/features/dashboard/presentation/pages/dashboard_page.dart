@@ -7,7 +7,7 @@ import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../injection_container.dart';
 import '../../../posts/domain/entities/social_post.dart';
-import '../../../posting_log/presentation/widgets/log_tile.dart';
+import '../../../../core/widgets/log_tile.dart';
 import '../../../reminders/domain/entities/reminder.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import '../../../ai_prompts/presentation/widgets/dashboard_ai_writer_card.dart';

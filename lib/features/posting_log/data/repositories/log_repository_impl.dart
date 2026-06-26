@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/posting_log.dart';
 import '../../domain/repositories/log_repository.dart';
 import '../datasources/log_local_datasource.dart';
@@ -70,6 +71,24 @@ class LogRepositoryImpl implements LogRepository {
         notes: params.notes,
         createdAt: DateTime.now(),
       ));
+    } catch (e) {
+      return Left(DatabaseFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, PostingLog>> updateLogStatus(
+    String id,
+    LogStatus status,
+  ) async {
+    try {
+      final row = await _local.getById(id);
+      if (row == null) {
+        return const Left(NotFoundFailure(message: 'Log entry not found.'));
+      }
+      final domain = row.toDomain().copyWith(status: status);
+      await _local.update(domain.toCompanion());
+      return Right(domain);
     } catch (e) {
       return Left(DatabaseFailure(message: e.toString()));
     }
