@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/connected_account.dart';
 import '../../domain/entities/facebook_page.dart';
@@ -100,39 +101,24 @@ class _AccountsView extends StatelessWidget {
     BuildContext context,
     List<FacebookPage> pages,
   ) async {
-    final selected = await showModalBottomSheet<FacebookPage>(
+    final selected = await showScrollableBottomSheet<FacebookPage>(
       context: context,
-      isScrollControlled: true,
-      builder: (sheetCtx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Select a Facebook Page',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Choose which page SocialBox should use for posting.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...pages.map(
+      title: 'Select a Facebook Page',
+      subtitle: 'Choose which page SocialBox should use for posting.',
+      initialChildSize: 0.5,
+      builder: (sheetCtx, scrollController) => ListView(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        children: pages
+            .map(
               (page) => ListTile(
                 leading: const Icon(Icons.facebook_rounded),
-                title: Text(page.name),
+                title: Text(page.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text('Page ID: ${page.id}'),
                 onTap: () => Navigator.pop(sheetCtx, page),
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
+            )
+            .toList(),
       ),
     );
     if (selected == null || !context.mounted) return;

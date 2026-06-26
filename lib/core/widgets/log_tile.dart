@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../features/posting_log/domain/entities/posting_log.dart';
 import '../utils/date_utils.dart';
 import '../utils/platform_utils.dart';
+import 'scrollable_bottom_sheet.dart';
 
 class LogTile extends StatelessWidget {
   const LogTile({
@@ -202,35 +203,20 @@ class LogTile extends StatelessWidget {
   Future<void> _showStatusMenu(BuildContext context) async {
     final handler = onStatusChanged;
     if (handler == null) return;
-    final selected = await showModalBottomSheet<LogStatus>(
+    final selected = await showListBottomSheet<LogStatus>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Update log status',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
+      title: 'Update log status',
+      initialChildSize: 0.42,
+      children: LogStatus.values
+          .map(
+            (s) => ListTile(
+              leading: Icon(s.icon, color: s.color),
+              title: Text(s.label),
+              trailing: s == log.status ? const Icon(Icons.check_rounded) : null,
+              onTap: () => Navigator.pop(context, s),
             ),
-            ...LogStatus.values.map(
-              (s) => ListTile(
-                leading: Icon(s.icon, color: s.color),
-                title: Text(s.label),
-                trailing:
-                    s == log.status ? const Icon(Icons.check_rounded) : null,
-                onTap: () => Navigator.pop(context, s),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+          )
+          .toList(),
     );
     if (selected != null && selected != log.status) {
       handler(selected);

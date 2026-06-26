@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/loading_state.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/comment_category.dart' show Comment;
 import '../cubit/comment_cubit.dart';
@@ -78,7 +81,7 @@ class _CommentsViewState extends State<_CommentsView> {
       body: BlocBuilder<CommentCubit, CommentState>(
         builder: (context, state) {
           if (state is CommentLoading || state is CommentInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingListSkeleton(itemCount: 6, itemHeight: 72);
           }
           if (state is CommentError) {
             return Center(
@@ -96,21 +99,19 @@ class _CommentsViewState extends State<_CommentsView> {
           if (state is CommentLoaded) {
             final visible = state.visibleComments;
             if (visible.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.chat_bubble_outline_rounded,
-                        size: 72, color: Theme.of(context).hintColor),
-                    const SizedBox(height: 12),
-                    Text(
-                      state.comments.isEmpty
-                          ? 'No comments in this category yet.'
-                          : 'No comments match your filter.',
-                      style: const TextStyle(fontSize: 15),
-                    ),
-                  ],
-                ),
+              return EmptyState(
+                icon: Icons.chat_bubble_outline_rounded,
+                title: state.comments.isEmpty
+                    ? 'No comments yet'
+                    : 'No matches',
+                message: state.comments.isEmpty
+                    ? 'Add reusable comments you can copy to any post.'
+                    : 'Try a different search or turn off favorites filter.',
+                actionLabel:
+                    state.comments.isEmpty ? 'Add comment' : null,
+                onAction: state.comments.isEmpty
+                    ? () => _showAddComment(context)
+                    : null,
               );
             }
             return ListView.separated(
@@ -148,14 +149,13 @@ class _CommentsViewState extends State<_CommentsView> {
   void _showAddComment(BuildContext context) {
     final cubit = context.read<CommentCubit>();
     final catId = widget.categoryId;
-    showModalBottomSheet(
+    showScrollableBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetCtx) => AddCommentBottomSheet(
+      title: 'New comment',
+      initialChildSize: 0.7,
+      builder: (sheetCtx, scrollController) => AddCommentBottomSheet(
+        scrollController: scrollController,
+        embeddedInSheet: true,
         onSubmit: (text, tags) async {
           final ok = await cubit.add(
             categoryId: catId,
@@ -170,14 +170,13 @@ class _CommentsViewState extends State<_CommentsView> {
 
   void _showEditComment(BuildContext context, Comment c) {
     final cubit = context.read<CommentCubit>();
-    showModalBottomSheet(
+    showScrollableBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetCtx) => AddCommentBottomSheet(
+      title: 'Edit comment',
+      initialChildSize: 0.7,
+      builder: (sheetCtx, scrollController) => AddCommentBottomSheet(
+        scrollController: scrollController,
+        embeddedInSheet: true,
         initialText: c.text,
         initialTags: c.tags,
         onSubmit: (text, tags) async {

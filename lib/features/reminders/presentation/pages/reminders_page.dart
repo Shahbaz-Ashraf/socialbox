@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/loading_state.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/reminder.dart';
 import '../bloc/reminder_bloc.dart';
@@ -82,25 +86,14 @@ class _RemindersViewState extends State<_RemindersView> {
       body: BlocBuilder<ReminderBloc, ReminderState>(
         builder: (context, state) {
           if (state is ReminderLoading || state is ReminderInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingListSkeleton(itemCount: 5, itemHeight: 88);
           }
           if (state is ReminderLoaded) {
             if (state.reminders.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.notifications_off_rounded,
-                      size: 96,
-                      color: Theme.of(context).hintColor,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('No reminders yet'),
-                    const SizedBox(height: 6),
-                    const Text('Tap + to create your first reminder.'),
-                  ],
-                ),
+              return const EmptyState(
+                icon: Icons.notifications_off_rounded,
+                title: 'No reminders yet',
+                message: 'Get notified before it is time to post.',
               );
             }
             final upcoming = state.upcoming;
@@ -157,14 +150,14 @@ class _RemindersViewState extends State<_RemindersView> {
     final bloc = context.read<ReminderBloc>();
     final posts = await bloc.loadLinkablePosts();
     if (!context.mounted) return;
-    showModalBottomSheet(
+    showScrollableBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => ReminderFormSheet(
+      title: existing == null ? 'New reminder' : 'Edit reminder',
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) => ReminderFormSheet(
+        scrollController: scrollController,
+        embeddedInSheet: true,
         initial: existing,
         prefillTitle: prefillTitle,
         prefillTime: prefillTime,
@@ -225,14 +218,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 11,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+      child: Text(text, style: AppTextStyles.sectionHeader(context)),
     );
   }
 }

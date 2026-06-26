@@ -14,6 +14,8 @@ class ReminderFormSheet extends StatefulWidget {
     this.linkedPostId,
     required this.posts,
     this.onSubmit,
+    this.scrollController,
+    this.embeddedInSheet = false,
   });
 
   final Reminder? initial;
@@ -22,6 +24,8 @@ class ReminderFormSheet extends StatefulWidget {
   final String? linkedPostId;
   final List<SocialPost> posts;
   final Future<bool> Function(CreateReminderParams params)? onSubmit;
+  final ScrollController? scrollController;
+  final bool embeddedInSheet;
 
   @override
   State<ReminderFormSheet> createState() => _ReminderFormSheetState();
@@ -61,30 +65,27 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).hintColor.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                ),
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!widget.embeddedInSheet) ...[
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).hintColor.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(widget.initial == null ? 'New Reminder' : 'Edit Reminder',
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
+          Text(widget.initial == null ? 'New Reminder' : 'Edit Reminder',
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 16),
+        ],
             TextField(
               controller: _titleCtrl,
               decoration: const InputDecoration(
@@ -226,7 +227,22 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
               ),
             ),
           ],
-        ),
+    );
+
+    if (widget.scrollController != null) {
+      return ListView(
+        controller: widget.scrollController,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [content],
+      );
+    }
+
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: content,
       ),
     );
   }

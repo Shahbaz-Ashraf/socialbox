@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_text_styles.dart';
+import '../../../../app/widgets/form_section_card.dart';
 import '../../../../core/utils/date_utils.dart';
+import '../../../../core/widgets/loading_state.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../injection_container.dart';
@@ -46,7 +49,7 @@ class _PostDetailView extends StatelessWidget {
       builder: (context, state) {
         if (state is PostDetailLoading || state is PostDetailInitial) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: LoadingListSkeleton(itemCount: 4, itemHeight: 100),
           );
         }
         if (state is PostDetailNotFound) {
@@ -213,155 +216,159 @@ class _PostDetailView extends StatelessWidget {
                   ],
           ),
           body: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      post.title,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  PostStatusBadge(status: post.status),
-                ],
-              ),
-              if (post.scheduledAt != null) ...[
-                const SizedBox(height: 8),
-                Row(
+              FormSectionCard(
+                title: 'Overview',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.schedule_rounded, size: 16),
-                    const SizedBox(width: 4),
-                    Text(AppDateUtils.formatDateTime(post.scheduledAt!)),
-                    const SizedBox(width: 8),
-                    Text(
-                      '(${AppDateUtils.formatRelative(post.scheduledAt!)})',
-                      style: TextStyle(color: Theme.of(context).hintColor),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            post.title,
+                            style: AppTextStyles.cardTitle(context).copyWith(
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        PostStatusBadge(status: post.status),
+                      ],
                     ),
+                    if (post.scheduledAt != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule_rounded, size: 16),
+                          const SizedBox(width: 4),
+                          Text(AppDateUtils.formatDateTime(post.scheduledAt!)),
+                          const SizedBox(width: 8),
+                          Text(
+                            '(${AppDateUtils.formatRelative(post.scheduledAt!)})',
+                            style: TextStyle(
+                              color: Theme.of(context).hintColor,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
-              ],
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context)
-                        .dividerColor
-                        .withValues(alpha: 0.4),
-                  ),
-                ),
+              ),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'Content',
                 child: Text(
                   post.content,
                   style: const TextStyle(fontSize: 15, height: 1.5),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Platforms',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: post.platforms
-                    .map(
-                      (p) => _PlatformActionButton(
-                        platform: p,
-                        onOpen: () => launchUrl(Uri.parse(p.webUrl)),
-                        onPublishViaApi: isBusy
-                            ? null
-                            : () => _publishViaApi(context, cubit, p),
-                        onMarkPosted: isBusy
-                            ? null
-                            : () => _markPosted(context, cubit, p),
-                      ),
-                    )
-                    .toList(),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'Platforms',
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: post.platforms
+                      .map(
+                        (p) => _PlatformActionButton(
+                          platform: p,
+                          onOpen: () => launchUrl(Uri.parse(p.webUrl)),
+                          onPublishViaApi: isBusy
+                              ? null
+                              : () => _publishViaApi(context, cubit, p),
+                          onMarkPosted: isBusy
+                              ? null
+                              : () => _markPosted(context, cubit, p),
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
               if (post.tags.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Tags',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  children: post.tags
-                      .map((t) => Chip(label: Text('#$t')))
-                      .toList(),
+                const SizedBox(height: 12),
+                FormSectionCard(
+                  title: 'Tags',
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: post.tags
+                        .map((t) => Chip(label: Text('#$t')))
+                        .toList(),
+                  ),
                 ),
               ],
               if ((post.notes ?? '').isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Notes',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                const SizedBox(height: 12),
+                FormSectionCard(
+                  title: 'Notes',
+                  child: Text(post.notes!),
                 ),
-                const SizedBox(height: 6),
-                Text(post.notes!),
               ],
-              const SizedBox(height: 24),
-              const Text(
-                'Posting Log',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              BlocBuilder<LogCubit, LogState>(
-                builder: (context, logState) {
-                  if (logState is LogLoaded) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        PlatformLogRow(
-                          platforms: post.platforms,
-                          logs: logState.logs,
-                        ),
-                        const SizedBox(height: 12),
-                        if (logState.logs.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('No log entries yet.'),
-                          )
-                        else
-                          ...logState.logs.map(
-                            (l) => LogTile(
-                              log: l,
-                              onCopyUrl: context.read<LogCubit>().copyExternalUrl,
-                              onStatusChanged: (status) async {
-                                final ok = await context
-                                    .read<LogCubit>()
-                                    .changeStatus(l.id, status);
-                                if (!context.mounted) return;
-                                if (ok) {
-                                  AppSnackbar.success(
-                                    context,
-                                    'Status updated to ${status.label}',
-                                  );
-                                } else {
-                                  AppSnackbar.error(
-                                    context,
-                                    'Could not update status',
-                                  );
-                                }
-                              },
-                            ),
+              const SizedBox(height: 12),
+              FormSectionCard(
+                title: 'Posting log',
+                child: BlocBuilder<LogCubit, LogState>(
+                  builder: (context, logState) {
+                    if (logState is LogLoaded) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          PlatformLogRow(
+                            platforms: post.platforms,
+                            logs: logState.logs,
                           ),
-                      ],
+                          const SizedBox(height: 12),
+                          if (logState.logs.isEmpty)
+                            Text(
+                              'No log entries yet.',
+                              style: TextStyle(
+                                color: Theme.of(context).hintColor,
+                                fontSize: 13,
+                              ),
+                            )
+                          else
+                            ...logState.logs.map(
+                              (l) => LogTile(
+                                log: l,
+                                onCopyUrl:
+                                    context.read<LogCubit>().copyExternalUrl,
+                                onStatusChanged: (status) async {
+                                  final ok = await context
+                                      .read<LogCubit>()
+                                      .changeStatus(l.id, status);
+                                  if (!context.mounted) return;
+                                  if (ok) {
+                                    AppSnackbar.success(
+                                      context,
+                                      'Status updated to ${status.label}',
+                                    );
+                                  } else {
+                                    AppSnackbar.error(
+                                      context,
+                                      'Could not update status',
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                        ],
+                      );
+                    }
+                    return const SizedBox(
+                      height: 48,
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
                     );
-                  }
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: CircularProgressIndicator(),
-                  );
-                },
+                  },
+                ),
               ),
             ],
           ),

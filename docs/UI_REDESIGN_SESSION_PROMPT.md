@@ -66,12 +66,12 @@ Target: **Buffer / Notion / Linear** quality — professional SaaS mobile app.
 - Update `features.md` when shipping UI changes.
 
 ## Verification checklist
-- [ ] `flutter analyze` — 0 issues
-- [ ] `flutter test` — all pass
-- [ ] Run on Infinix X6853, capture screenshots to `screenshots/`
-- [ ] Tap "Open in AI" — no yellow/black overflow stripes
-- [ ] Home screen: minimal scroll to reach all primary actions
-- [ ] Create post form usable on small screen
+- [x] `flutter analyze` — 0 issues
+- [x] `flutter test` — 27 passed
+- [x] Run on Infinix X6853, capture screenshots to `screenshots/` (`10–15_*`)
+- [x] Tap "Open in AI" — scroll-safe sheet (widget test + device capture)
+- [x] Home screen: compact layout with skeleton + tabbed feed
+- [x] Create post form usable on small screen (section cards + scroll sheets)
 
 ## Deliverables
 1. Modern UI across home + at least posts create/edit + settings

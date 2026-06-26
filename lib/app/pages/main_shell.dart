@@ -30,29 +30,49 @@ class MainShell extends StatelessWidget {
     final currentIndex = _currentIndex(context);
     final tokens = Theme.of(context).extension<AppThemeTokens>() ??
         AppThemeTokens.light();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        backgroundColor: tokens.navBarBackground,
-        elevation: 0,
-        height: 64,
-        surfaceTintColor: Colors.transparent,
-        indicatorColor: Theme.of(context).colorScheme.primary.withValues(
-              alpha: 0.1,
+      extendBody: true,
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: tokens.navBarBackground,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark
+                  ? tokens.accentBorder
+                  : tokens.accentBorder.withValues(alpha: 0.8),
             ),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (i) => context.go(_tabs[i].path),
-        destinations: _tabs
-            .map(
-              (t) => NavigationDestination(
-                icon: Icon(t.icon),
-                selectedIcon: Icon(t.icon, fill: 1.0),
-                label: t.label,
-              ),
-            )
-            .toList(),
+            boxShadow: tokens.cardShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: NavigationBar(
+              selectedIndex: currentIndex,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              height: 64,
+              surfaceTintColor: Colors.transparent,
+              indicatorColor: Theme.of(context).colorScheme.primary.withValues(
+                    alpha: isDark ? 0.22 : 0.12,
+                  ),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (i) => context.go(_tabs[i].path),
+              destinations: _tabs
+                  .map(
+                    (t) => NavigationDestination(
+                      icon: Icon(t.icon),
+                      selectedIcon: Icon(t.icon, fill: 1.0),
+                      label: t.label,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
       ),
     );
   }

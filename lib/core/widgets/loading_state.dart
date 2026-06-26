@@ -40,6 +40,45 @@ class LoadingState extends StatelessWidget {
   }
 }
 
+class LoadingGridSkeleton extends StatelessWidget {
+  const LoadingGridSkeleton({
+    super.key,
+    this.itemCount = 8,
+    this.crossAxisCount = 2,
+    this.childAspectRatio = 1.05,
+  });
+
+  final int itemCount;
+  final int crossAxisCount;
+  final double childAspectRatio;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Shimmer.fromColors(
+      baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+      highlightColor:
+          isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: childAspectRatio,
+        ),
+        itemCount: itemCount,
+        itemBuilder: (_, __) => Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class LoadingListSkeleton extends StatelessWidget {
   const LoadingListSkeleton({
     super.key,

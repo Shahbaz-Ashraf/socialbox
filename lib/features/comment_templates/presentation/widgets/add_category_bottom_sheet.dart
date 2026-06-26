@@ -3,10 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/extensions.dart';
 
 class AddCategoryBottomSheet extends StatefulWidget {
-  const AddCategoryBottomSheet({super.key, this.onSubmit});
+  const AddCategoryBottomSheet({
+    super.key,
+    this.onSubmit,
+    this.scrollController,
+    this.embeddedInSheet = false,
+  });
 
   final Future<void> Function(String name, String icon, String colorHex)?
       onSubmit;
+  final ScrollController? scrollController;
+  final bool embeddedInSheet;
 
   @override
   State<AddCategoryBottomSheet> createState() => _AddCategoryBottomSheetState();
@@ -37,29 +44,26 @@ class _AddCategoryBottomSheetState extends State<AddCategoryBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).hintColor.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                ),
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!widget.embeddedInSheet) ...[
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).hintColor.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(height: 16),
-            const Text('New Category',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
+          const Text('New Category',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 16),
+        ],
             TextField(
               controller: _nameCtrl,
               autofocus: true,
@@ -163,7 +167,22 @@ class _AddCategoryBottomSheetState extends State<AddCategoryBottomSheet> {
               ),
             ),
           ],
-        ),
+    );
+
+    if (widget.scrollController != null) {
+      return ListView(
+        controller: widget.scrollController,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [content],
+      );
+    }
+
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: content,
       ),
     );
   }

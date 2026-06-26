@@ -72,7 +72,7 @@
 | Swipe to delete | Dismissible with undo SnackBar | **Implemented** | Restore via `CreateComment` on undo |
 | Category drag-reorder | Reorder custom categories | **Implemented** | `SliverReorderableList` — custom categories only |
 | Lottie empty states | Animated empty placeholders | **Scheduled 2027** | Polished icon empty states on dashboard tabs |
-| Shimmer loading skeletons | Skeleton grid while loading | **Partial** | `DashboardSkeleton` on home; `LoadingListSkeleton` elsewhere |
+| Shimmer loading skeletons | Skeleton grid while loading | **Partial** | Home, posts, comments, reminders, categories, post detail |
 
 ---
 
@@ -255,7 +255,7 @@
 
 | Feature | Description | Status | Notes |
 |---------|-------------|--------|-------|
-| Unit + widget tests | BLoC tests, use case tests | **Partial** | 8 test files incl. `PostListBloc`, `ai_app_picker_sheet` |
+| Unit + widget tests | BLoC tests, use case tests | **Partial** | 9 test files incl. `scrollable_bottom_sheet` overflow |
 | Lottie animations | Empty states on all list pages | **Scheduled 2027** | Not in `pubspec.yaml` |
 | Shimmer skeletons | Loading placeholders on all pages | **Partial** | Home dashboard skeleton + calendar loading |
 | App icon + splash screen | Branded launch experience | **Scheduled 2027** | |
@@ -277,8 +277,8 @@
 |------|:-----------:|:-------:|:-------:|:--------------:|
 | Navigation & Shell | 9 | 0 | 0 | 0 |
 | Foundation & Services | 11 | 1 | 0 | 2 |
-| Comment Templates | 10 | 0 | 0 | 1 |
-| Posts Manager | 17 | 1 | 0 | 1 |
+| Comment Templates | 10 | 0 | 0 | 0 |
+| Posts Manager | 17 | 1 | 0 | 0 |
 | Posting Log | 9 | 0 | 0 | 0 |
 | Reminders | 9 | 0 | 0 | 0 |
 | Social Auth | 5 | 2 | 0 | 2 |
@@ -288,7 +288,7 @@
 | Hashtags | 4 | 0 | 0 | 1 |
 | Calendar | 5 | 0 | 0 | 1 |
 | API Auto-Posting | 5 | 0 | 0 | 3 |
-| Polish & Platform | 1 | 2 | 0 | 10 |
+| Polish & Platform | 1 | 2 | 0 | 9 |
 | **Totals** | **120** | **6** | **0** | **24** |
 
 ---

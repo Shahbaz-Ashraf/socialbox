@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/widgets/form_section_card.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../../../injection_container.dart';
 import '../../domain/constants/prompt_options.dart';
 import '../../domain/entities/prompt_config.dart';
@@ -288,50 +290,30 @@ class _StudioViewState extends State<_StudioView>
   }
 
   void _showPreviewSheet(BuildContext context, String prompt, AiPromptCubit cubit) {
-    showModalBottomSheet(
+    showScrollableBottomSheet(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      title: 'Prompt preview',
+      initialChildSize: 0.75,
+      maxChildSize: 0.95,
+      headerActions: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.share_rounded),
+            onPressed: () => Share.share(prompt, subject: 'AI Post Prompt'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.content_copy_rounded),
+            onPressed: () => cubit.copyPrompt(context, prompt),
+          ),
+        ],
       ),
-      builder: (sheetCtx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (_, scrollCtrl) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Text('Prompt Preview',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.share_rounded),
-                    onPressed: () => Share.share(prompt, subject: 'AI Post Prompt'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.content_copy_rounded),
-                    onPressed: () => cubit.copyPrompt(sheetCtx, prompt),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: scrollCtrl,
-                padding: const EdgeInsets.all(16),
-                child: SelectableText(
-                  prompt,
-                  style: const TextStyle(fontSize: 13, height: 1.45),
-                ),
-              ),
-            ),
-          ],
+      builder: (_, scrollCtrl) => SingleChildScrollView(
+        controller: scrollCtrl,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: SelectableText(
+          prompt,
+          style: const TextStyle(fontSize: 13, height: 1.45),
         ),
       ),
     );
@@ -384,48 +366,40 @@ class _StudioViewState extends State<_StudioView>
 
   void _showPresets(BuildContext context) {
     final cubit = context.read<AiPromptCubit>();
-    showModalBottomSheet(
+    showListBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Saved Presets',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      title: 'Saved presets',
+      initialChildSize: 0.5,
+      children: cubit.state.presets
+          .map(
+            (p) => ListTile(
+              leading: const Icon(Icons.bookmark_rounded),
+              title: Text(p.name),
+              subtitle: Text(
+                p.config.topic.isEmpty ? 'No topic set' : p.config.topic,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline_rounded),
+                onPressed: () {
+                  cubit.deletePreset(p.id);
+                  Navigator.pop(context);
+                },
+              ),
+              onTap: () async {
+                final confirmed = await confirmPresetLoadIfNeeded(
+                  context,
+                  currentConfig: cubit.state.config,
+                  preset: p,
+                );
+                if (!confirmed || !context.mounted) return;
+                cubit.loadPreset(p);
+                Navigator.pop(context);
+              },
             ),
-            ...cubit.state.presets.map((p) => ListTile(
-                  leading: const Icon(Icons.bookmark_rounded),
-                  title: Text(p.name),
-                  subtitle: Text(
-                    p.config.topic.isEmpty
-                        ? 'No topic set'
-                        : p.config.topic,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    onPressed: () {
-                      cubit.deletePreset(p.id);
-                      Navigator.pop(context);
-                    },
-                  ),
-                  onTap: () async {
-                    final confirmed = await confirmPresetLoadIfNeeded(
-                      context,
-                      currentConfig: cubit.state.config,
-                      preset: p,
-                    );
-                    if (!confirmed || !context.mounted) return;
-                    cubit.loadPreset(p);
-                    Navigator.pop(context);
-                  },
-                )),
-          ],
-        ),
-      ),
+          )
+          .toList(),
     );
   }
 }
@@ -457,13 +431,12 @@ class _ConfigTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = state.config;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const _SectionHeader(
-          icon: Icons.lightbulb_rounded,
-          title: 'Topic & Keywords',
-          subtitle: 'What should the AI write about?',
-        ),
+        FormSectionCard(
+          title: 'Topic & keywords',
+          child: Column(
+            children: [
         TextField(
           controller: topicCtrl,
           decoration: const InputDecoration(
@@ -494,11 +467,15 @@ class _ConfigTab extends StatelessWidget {
           ),
           onChanged: (v) => cubit.updateField(secondaryKeywords: v),
         ),
-        const SizedBox(height: 20),
-        const _SectionHeader(
-          icon: Icons.public_rounded,
-          title: 'Platform & Audience',
+            ],
+          ),
         ),
+        const SizedBox(height: 12),
+        FormSectionCard(
+          title: 'Platform & audience',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
         Text(
           'Platform',
           style: TextStyle(
@@ -543,11 +520,14 @@ class _ConfigTab extends StatelessWidget {
           maxLines: 2,
           onChanged: (v) => cubit.updateField(targetAudience: v),
         ),
-        const SizedBox(height: 20),
-        const _SectionHeader(
-          icon: Icons.palette_rounded,
-          title: 'Voice & Style',
+            ],
+          ),
         ),
+        const SizedBox(height: 12),
+        FormSectionCard(
+          title: 'Voice & style',
+          child: Column(
+            children: [
         DropdownButtonFormField<String>(
           key: ValueKey('archetype-${c.brandArchetype}'),
           initialValue: _dropdownValue(c.brandArchetype, kBrandArchetypes),
@@ -609,16 +589,18 @@ class _ConfigTab extends StatelessWidget {
           selectedItemBuilder: (context) => _selectedDropdownLabels(kContentPillars),
           onChanged: (v) => cubit.updateField(contentPillar: v ?? ''),
         ),
-        const SizedBox(height: 20),
-        const _SectionHeader(
-          icon: Icons.straighten_rounded,
-          title: 'Limits & Formatting',
+            ],
+          ),
         ),
+        const SizedBox(height: 12),
+        FormSectionCard(
+          title: 'Limits & formatting',
+          child: Column(
+            children: [
         TextField(
           controller: wordLimitCtrl,
           decoration: const InputDecoration(
             labelText: 'Word Limit',
-            border: OutlineInputBorder(),
           ),
           onChanged: (v) => cubit.updateField(wordLimit: v),
         ),
@@ -627,7 +609,6 @@ class _ConfigTab extends StatelessWidget {
           controller: emojiCtrl,
           decoration: const InputDecoration(
             labelText: 'Emojis',
-            border: OutlineInputBorder(),
           ),
           onChanged: (v) => cubit.updateField(emojiRange: v),
         ),
@@ -636,9 +617,11 @@ class _ConfigTab extends StatelessWidget {
           controller: hashtagCtrl,
           decoration: const InputDecoration(
             labelText: 'Hashtags',
-            border: OutlineInputBorder(),
           ),
           onChanged: (v) => cubit.updateField(hashtagRange: v),
+        ),
+            ],
+          ),
         ),
         const SizedBox(height: 80),
       ],
@@ -740,43 +723,5 @@ class _TemplateTab extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-  });
 
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 15)),
-                if (subtitle != null)
-                  Text(subtitle!,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).hintColor)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 

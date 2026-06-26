@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_decorations.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../domain/entities/social_post.dart';
@@ -19,21 +21,17 @@ class PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            decoration: AppDecorations.modernCard(context),
+            padding: const EdgeInsets.all(14),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -43,9 +41,8 @@ class PostCard extends StatelessWidget {
                       post.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
+                      style: AppTextStyles.cardTitle(context).copyWith(
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -106,6 +103,7 @@ class PostCard extends StatelessWidget {
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),

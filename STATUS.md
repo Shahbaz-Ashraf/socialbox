@@ -1,7 +1,7 @@
 # Session Status — SocialBox
 
 **Last updated:** 2026-06-26  
-**App state:** `flutter analyze` — **0 issues** · `flutter test` — **26 passed**. UI/UX polish session: home skeleton, settings/posts/calendar visual system, `PostListBloc` stream fix, bottom-sheet overflow guards.
+**App state:** `flutter analyze` — **0 issues** · `flutter test` — **27 passed**. UI polish complete: all bottom sheets migrated, posts/comments/AI studio/nav polished, device screenshots captured.
 **Full inventory:** See `features.md` (current roadmap ~100% · 2027 items deferred)
 
 ### Architecture policy (all sessions)
@@ -41,6 +41,10 @@
 | `PostListBloc` constructor stream subscription fix | **Done** |
 | Scrollable bottom sheets (`scrollable_bottom_sheet.dart`) | **Done** |
 | Tests: `ai_app_picker_sheet` 320px, `post_list_bloc` | **Done** |
+| All bottom sheets → `scrollable_bottom_sheet` | **Done** |
+| Posts list/detail, comments, reminders, AI studio polish | **Done** |
+| Floating bottom nav (`main_shell.dart`) | **Done** |
+| Device screenshots (`screenshots/10–15_*.png`) | **Done** |
 | `AppBlocObserver` | **Done** |
 
 ---

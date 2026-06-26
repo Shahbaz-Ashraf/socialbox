@@ -3,8 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/extensions.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/loading_state.dart';
+import '../../../../core/widgets/scrollable_bottom_sheet.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/comment_category.dart';
 import '../cubit/category_cubit.dart';
@@ -81,16 +84,17 @@ class _CategoriesView extends StatelessWidget {
   }
 
   void _showAddCategory(BuildContext context) {
-    showModalBottomSheet(
+    showScrollableBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetCtx) => BlocProvider.value(
+      title: 'New category',
+      subtitle: 'Choose a name, icon, and color',
+      initialChildSize: 0.75,
+      maxChildSize: 0.92,
+      builder: (sheetCtx, scrollController) => BlocProvider.value(
         value: context.read<CategoryCubit>(),
         child: AddCategoryBottomSheet(
+          scrollController: scrollController,
+          embeddedInSheet: true,
           onSubmit: (name, icon, color) async {
             final ok = await context.read<CategoryCubit>().add(
                   name: name,
@@ -120,17 +124,10 @@ class _CategoryGrid extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         if (predefined.isNotEmpty) ...[
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Built-in',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Built-in', style: AppTextStyles.sectionHeader(context)),
             ),
           ),
           SliverPadding(
@@ -165,13 +162,9 @@ class _CategoryGrid extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'Your categories',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                    ),
+                    style: AppTextStyles.sectionHeader(context),
                   ),
                   const SizedBox(width: 8),
                   Icon(Icons.drag_handle_rounded,
@@ -340,22 +333,8 @@ class _LoadingGrid extends StatelessWidget {
   const _LoadingGrid();
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.05,
-      ),
-      itemCount: 8,
-      itemBuilder: (_, __) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
+    final cols = MediaQuery.of(context).size.width > 700 ? 3 : 2;
+    return LoadingGridSkeleton(crossAxisCount: cols);
   }
 }
 
@@ -363,19 +342,10 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.chat_bubble_outline_rounded,
-              size: 96, color: Theme.of(context).hintColor),
-          const SizedBox(height: 16),
-          const Text('No categories yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          const Text('Tap + to create your first category.'),
-        ],
-      ),
+    return const EmptyState(
+      icon: Icons.chat_bubble_outline_rounded,
+      title: 'No categories yet',
+      message: 'Create a category to organize your comment templates.',
     );
   }
 }

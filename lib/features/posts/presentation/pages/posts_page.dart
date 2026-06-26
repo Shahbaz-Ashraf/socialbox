@@ -3,8 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/loading_state.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/social_post.dart';
 import '../bloc/post_list_bloc.dart';
@@ -51,9 +54,14 @@ class _PostsView extends StatelessWidget {
               onPressed: () => context.pushNamed(RouteNames.aiPromptStudio),
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             isScrollable: true,
-            tabs: [
+            dividerHeight: 0,
+            labelStyle: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            tabs: const [
               Tab(text: 'All'),
               Tab(text: 'Draft'),
               Tab(text: 'Scheduled'),
@@ -70,7 +78,7 @@ class _PostsView extends StatelessWidget {
         body: BlocBuilder<PostListBloc, PostListState>(
           builder: (context, state) {
             if (state is PostListInitial || state is PostListLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingListSkeleton(itemCount: 6, itemHeight: 120);
             }
             if (state is PostListError) {
               return Center(child: Text(state.message));
@@ -125,22 +133,10 @@ class _PostList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (posts.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.inbox_outlined,
-                size: 80,
-                color: Theme.of(context).hintColor,
-              ),
-              const SizedBox(height: 12),
-              const Text('No posts here yet'),
-            ],
-          ),
-        ),
+      return const EmptyState(
+        icon: Icons.inbox_outlined,
+        title: 'No posts in this tab',
+        message: 'Try another filter or create a new post.',
       );
     }
     return RefreshIndicator(
@@ -173,33 +169,12 @@ class _Empty extends StatelessWidget {
   final VoidCallback onCreate;
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.edit_document,
-              size: 96,
-              color: Theme.of(context).hintColor,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No posts yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            const Text('Tap "New Post" to get started.'),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('New Post'),
-              onPressed: onCreate,
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: Icons.edit_document,
+      title: 'No posts yet',
+      message: 'Create your first post to start scheduling content.',
+      actionLabel: 'New post',
+      onAction: onCreate,
     );
   }
 }

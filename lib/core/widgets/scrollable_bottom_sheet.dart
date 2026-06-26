@@ -7,14 +7,18 @@ Future<T?> showScrollableBottomSheet<T>({
       builder,
   String? title,
   String? subtitle,
+  Widget? headerActions,
   double initialChildSize = 0.55,
   double minChildSize = 0.35,
   double maxChildSize = 0.92,
+  bool showDragHandle = true,
+  Color? backgroundColor,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -32,38 +36,47 @@ Future<T?> showScrollableBottomSheet<T>({
           builder: (context, scrollController) {
             return Column(
               children: [
-                const SizedBox(height: 10),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor,
-                    borderRadius: BorderRadius.circular(2),
+                if (showDragHandle) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
+                ],
                 if (title != null)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: Column(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (subtitle != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.55),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        if (subtitle != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.55,
-                              ),
-                            ),
-                          ),
-                        ],
+                        if (headerActions != null) headerActions,
                       ],
                     ),
                   ),
@@ -74,5 +87,26 @@ Future<T?> showScrollableBottomSheet<T>({
         ),
       );
     },
+  );
+}
+
+/// Simple scrollable list picker sheet.
+Future<T?> showListBottomSheet<T>({
+  required BuildContext context,
+  required String title,
+  String? subtitle,
+  required List<Widget> children,
+  double initialChildSize = 0.45,
+}) {
+  return showScrollableBottomSheet<T>(
+    context: context,
+    title: title,
+    subtitle: subtitle,
+    initialChildSize: initialChildSize,
+    builder: (_, scrollController) => ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      children: children,
+    ),
   );
 }
